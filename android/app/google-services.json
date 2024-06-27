@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "260710321213",
+    "project_id": "jogfarm-a1432",
+    "storage_bucket": "jogfarm-a1432.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:260710321213:android:9c4c0d290e1dc75c09ae54",
+        "android_client_info": {
+          "package_name": "com.example.jogfarmv1"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "260710321213-369ofdfghufcas7ar5gop5gk4946j68v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.jogfarmv1",
+            "certificate_hash": "0eff3014329198a6e98cb09b3931dcd2bfe1de9e"
+          }
+        },
+        {
+          "client_id": "260710321213-b4pcahrunlecom1dmvb4r8ne1nmpkpqt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAEON-9V2EWP9bYOz6MKEld3M2oyVf2gDE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "260710321213-b4pcahrunlecom1dmvb4r8ne1nmpkpqt.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
