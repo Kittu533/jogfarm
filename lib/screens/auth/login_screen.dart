@@ -7,6 +7,7 @@ import 'package:jogfarmv1/screens/auth/register_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jogfarmv1/screens/home_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:lottie/lottie.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,11 +21,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  bool _passwordVisible = false;
 
   @override
   void initState() {
     super.initState();
     _initialization = Firebase.initializeApp();
+    _passwordVisible = false;
   }
 
   Future<void> _handleGoogleBtnClick(BuildContext context) async {
@@ -37,12 +40,10 @@ class _LoginScreenState extends State<LoginScreen> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setBool('isLoggedIn', true);
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
+      _showSuccessAnimation();
     }).catchError((e) {
       log('Error signing in with Google: $e');
+      _showFailureAnimation();
     });
   }
 
@@ -65,40 +66,42 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signInWithUsernamePassword() async {
-  try {
-    QuerySnapshot querySnapshot = await _firestore
-        .collection('users')
-        .where('username', isEqualTo: _usernameController.text)
-        .get();
+    try {
+      QuerySnapshot querySnapshot = await _firestore
+          .collection('users')
+          .where('username', isEqualTo: _usernameController.text)
+          .get();
 
-    if (querySnapshot.docs.isEmpty) {
-      _showErrorDialog('Username tidak ditemukan');
-      return;
+      if (querySnapshot.docs.isEmpty) {
+        _showErrorDialog('Username tidak ditemukan');
+        _showFailureAnimation();
+        return;
+      }
+
+      var userData = querySnapshot.docs[0];
+      if (userData['password'] != _passwordController.text) {
+        _showErrorDialog('Password salah');
+        _showFailureAnimation();
+        return;
+      }
+
+      // Authenticate the user with Firebase Authentication
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+              email: userData['email'], password: _passwordController.text);
+
+      // Save login status and user ID
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', true);
+      await prefs.setString('userId', userCredential.user!.uid);
+
+      _showSuccessAnimation();
+    } catch (e) {
+      log('Error signing in with username and password: $e');
+      _showErrorDialog('Terjadi kesalahan saat masuk');
+      _showFailureAnimation();
     }
-
-    var userData = querySnapshot.docs[0];
-    if (userData['password'] != _passwordController.text) {
-      _showErrorDialog('Password salah');
-      return;
-    }
-
-    // Authenticate the user with Firebase Authentication
-    UserCredential userCredential = await FirebaseAuth.instance
-        .signInWithEmailAndPassword(
-            email: userData['email'], password: _passwordController.text);
-
-    // Save login status and user ID
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isLoggedIn', true);
-    await prefs.setString('userId', userCredential.user!.uid);
-
-    _showSuccessDialog();
-  } catch (e) {
-    log('Error signing in with username and password: $e');
-    _showErrorDialog('Terjadi kesalahan saat masuk');
   }
-}
-
 
   void _showErrorDialog(String message) {
     showDialog(
@@ -121,27 +124,45 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  void _showSuccessDialog() {
+  void _showSuccessAnimation() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          title: const Text('Berhasil'),
-          content: const Text('Berhasil masuk! Mengarahkan ke halaman home...'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Future.delayed(const Duration(milliseconds: 1000), () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const HomeScreen()),
-                  );
-                });
-              },
-              child: const Text('OK'),
-            ),
-          ],
+          content: Lottie.asset(
+            'assets/animations/success.json',
+            repeat: false,
+            onLoaded: (composition) {
+              Future.delayed(composition.duration, () {
+                Navigator.of(context).pop();
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                );
+              });
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _showFailureAnimation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          content: Lottie.asset(
+            'assets/animations/failure.json',
+            repeat: false,
+            onLoaded: (composition) {
+              Future.delayed(composition.duration, () {
+                Navigator.of(context).pop();
+              });
+            },
+          ),
         );
       },
     );
@@ -186,11 +207,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 20),
                       TextField(
                         controller: _passwordController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Password',
-                          prefixIcon: Icon(Icons.lock),
+                          prefixIcon: const Icon(Icons.lock),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _passwordVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _passwordVisible = !_passwordVisible;
+                              });
+                            },
+                          ),
                         ),
-                        obscureText: true,
+                        obscureText: !_passwordVisible,
                       ),
                       const SizedBox(height: 10),
                       Align(
@@ -244,7 +277,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ElevatedButton.icon(
                         onPressed: () => _handleGoogleBtnClick(context),
                         icon: Image.asset(
-                          'images/google.png',
+                          'assets/images/google.png',
                           width: 24,
                           height: 24,
                         ),

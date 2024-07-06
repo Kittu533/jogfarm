@@ -15,6 +15,7 @@ class UserModel {
   bool? isAdmin;
   bool? isBuyer;
   bool? isSeller;
+  bool? isKtpConfirmed;
   DateTime? createdAt;
 
   UserModel({
@@ -34,8 +35,29 @@ class UserModel {
     this.isAdmin,
     this.isBuyer,
     this.isSeller,
+    this.isKtpConfirmed,
     this.createdAt,
   });
+
+  UserModel.update({
+    required this.uid,
+    required this.username,
+    required this.email,
+    required this.phoneNumber,
+    this.firstName,
+    this.lastName,
+    this.address,
+    this.dateOfBirth,
+    this.ktpNumber,
+    this.ktpPicture,
+    this.gender,
+    this.profilePicture,
+    this.isAdmin,
+    this.isBuyer,
+    this.isSeller,
+    this.isKtpConfirmed,
+    this.createdAt,
+  }) : password = '';
 
   Map<String, dynamic> toMap() {
     return {
@@ -55,6 +77,7 @@ class UserModel {
       'is_admin': isAdmin,
       'is_buyer': isBuyer,
       'is_seller': isSeller,
+      'is_ktp_confirmed': isKtpConfirmed,
       'created_at': createdAt?.toIso8601String(),
     };
   }
@@ -79,6 +102,7 @@ class UserModel {
       isAdmin: map['is_admin'],
       isBuyer: map['is_buyer'],
       isSeller: map['is_seller'],
+      isKtpConfirmed: map['is_ktp_confirmed'],
       createdAt: map['created_at'] != null
           ? DateTime.parse(map['created_at'])
           : null,

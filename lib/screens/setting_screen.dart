@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:jogfarmv1/screens/account/myaccount_screen.dart';
 
+import 'package:jogfarmv1/screens/helppage_screen.dart'; // Import halaman bantuan
+
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
@@ -17,12 +19,11 @@ class SettingsScreen extends StatelessWidget {
       body: ListView(
         children: [
           SettingsItem(title: 'Akun Saya', destination: AkunSayaScreen()),
-          SettingsItem(
-              title: 'Ganti Password', destination: GantiPasswordScreen()),
+          SettingsItem(title: 'Ganti Password', destination: GantiPasswordScreen()),
           SettingsItem(title: 'Notifikasi', destination: NotifikasiScreen()),
-          SettingsItem(
-              title: 'Nonaktifkan akun', destination: NonaktifkanAkunScreen()),
+          SettingsItem(title: 'Nonaktifkan akun', destination: NonaktifkanAkunScreen()),
           SettingsItem(title: 'Logout', destination: LogoutScreen()),
+          SettingsItem(title: 'Bantuan', destination: HelpPage()), // Tambahkan item ini
         ],
       ),
     );
@@ -33,8 +34,7 @@ class SettingsItem extends StatelessWidget {
   final String title;
   final Widget destination;
 
-  const SettingsItem(
-      {super.key, required this.title, required this.destination});
+  const SettingsItem({super.key, required this.title, required this.destination});
 
   @override
   Widget build(BuildContext context) {

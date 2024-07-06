@@ -5,10 +5,9 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:jogfarmv1/model/users.dart';
-import 'package:image/image.dart' as img;
 import 'package:flutter/foundation.dart';
 import 'package:jogfarmv1/services/database_service.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // Ensure the DatabaseService is imported
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -31,6 +30,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _isImageDeleted = false;
   bool _isLoading = false;
 
+  UserModel? _currentUser;
+
   @override
   void initState() {
     super.initState();
@@ -50,9 +51,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _lastNameController.text = user.lastName ?? '';
           _phoneNumberController.text = user.phoneNumber;
           _addressController.text = user.address ?? '';
-          _dateOfBirthController.text =
-              user.dateOfBirth?.toIso8601String() ?? '';
+          _dateOfBirthController.text = user.dateOfBirth?.toIso8601String() ?? '';
           _profileImageUrl = user.profilePicture;
+          _currentUser = user; // Simpan data pengguna saat ini
           print('User Data Loaded: $user');
         });
       } else {
@@ -72,17 +73,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         uid: userId,
         username: _usernameController.text,
         email: _emailController.text,
-        password: '', // Password should not be updated here
+        password: _currentUser!.password, // Gunakan password yang disimpan
         phoneNumber: _phoneNumberController.text,
         firstName: _firstNameController.text,
         lastName: _lastNameController.text,
         address: _addressController.text,
         dateOfBirth: DateTime.tryParse(_dateOfBirthController.text),
         profilePicture: _profileImageUrl,
+        ktpNumber: _currentUser!.ktpNumber, // Gunakan nilai yang disimpan
+        ktpPicture: _currentUser!.ktpPicture, // Gunakan nilai yang disimpan
+        gender: _currentUser!.gender, // Gunakan nilai yang disimpan
+        isAdmin: _currentUser!.isAdmin, // Gunakan nilai yang disimpan
+        isBuyer: _currentUser!.isBuyer, // Gunakan nilai yang disimpan
+        isSeller: _currentUser!.isSeller, // Gunakan nilai yang disimpan
+        isKtpConfirmed: _currentUser!.isKtpConfirmed, // Gunakan nilai yang disimpan
+        createdAt: _currentUser!.createdAt, // Gunakan nilai yang disimpan
       );
-      await DatabaseService().addUser(updatedUser);
+      await DatabaseService().updateUser(updatedUser);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully!')),
+        const SnackBar(content: Text('Profil berhasil diperbarui!')),
       );
     }
   }

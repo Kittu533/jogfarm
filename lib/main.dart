@@ -1,13 +1,11 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:jogfarmv1/firebase_options.dart';
+import 'package:jogfarmv1/screens/home_screen.dart';
 import 'package:jogfarmv1/screens/splash_screen.dart';
 
-late Size mq;
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
@@ -16,15 +14,30 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: SplashScreen(),
+      home: FutureBuilder(
+        future: Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        ),
+        builder: (context, snapshot) {
+          // Show a loading spinner while Firebase initializes
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          // Once complete, show the main application
+          if (snapshot.connectionState == ConnectionState.done) {
+            return const HomeScreen(); // Update to HomeScreen
+          }
+          // If initialization failed, show an error message
+          if (snapshot.hasError) {
+            return Center(
+                child: Text('Error initializing Firebase: ${snapshot.error}'));
+          }
+          // Default case, should not be reached
+          return const Center(child: CircularProgressIndicator());
+        },
+      ),
     );
   }
-}
-
-Future<void> _initializeFirebase() async {
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
 }

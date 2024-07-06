@@ -101,13 +101,13 @@ class _AkunSayaScreenState extends State<AkunSayaScreen> {
           'Akun Saya',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.green[800],
+        backgroundColor: const Color(0xFF2D4739),
       ),
       body: SingleChildScrollView(
         child: Column(
           children: [
             Container(
-              color: Colors.green[800],
+              color: const Color(0xFF2D4739),
               width: double.infinity,
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -195,7 +195,10 @@ class _AkunSayaScreenState extends State<AkunSayaScreen> {
             ListTile(
               title: const Text('Akun bisnis'),
               onTap: () {
-                // Add your business account logic here
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => UpgradeAkunScreen()),
+                );
               },
             ),
             const Divider(),
@@ -217,17 +220,6 @@ class _AkunSayaScreenState extends State<AkunSayaScreen> {
               title: const Text('Pengaturan'),
               onTap: () {
                 // Add your help logic here
-              },
-            ),
-            const Divider(),
-            ListTile(
-              title: const Text('Upgrade Akun'),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) =>  UpgradeAkunScreen()),
-                );
               },
             ),
             const Divider(),

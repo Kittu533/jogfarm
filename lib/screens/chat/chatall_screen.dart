@@ -9,7 +9,7 @@ class ChatAllScreen extends StatelessWidget {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: const Color.fromARGB(255, 23, 92, 28),
+          backgroundColor: const Color(0xFF2D4739),
           
          title: const Text(
           'CHAT',

@@ -14,29 +14,27 @@ environment:
 # dependencies can be manually updated by changing the version numbers below to
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
+
 dependencies:
-  altfire_configurator: ^0.1.1
-
-  cupertino_icons: ^1.0.6
-
-  firebase_core: ^2.32.0
-
-  firebase_auth: ^4.20.0
-
-  google_sign_in: ^6.2.1
-
-  shared_preferences: ^2.0.6
-
-  cloud_firestore: ^4.0.0
-
-  image_picker: ^0.8.5+3
-
-  firebase_storage: ^11.0.0
-
-  image: ^4.0.15
-
   flutter:
     sdk: flutter
+  altfire_configurator: ^0.1.1
+  cupertino_icons: ^1.0.6
+  firebase_core: ^2.32.0
+  firebase_auth: ^4.20.0
+  google_sign_in: ^6.2.1
+  shared_preferences: ^2.0.6
+  cloud_firestore: ^4.0.0
+  image_picker: ^0.8.5+3
+  firebase_storage: ^11.0.0
+  image: ^4.0.15
+  camera: ^0.10.0+1
+  path_provider: ^2.0.11
+  path: ^1.8.0
+  uuid: ^3.0.1
+  google_maps_flutter: ^2.0.6
+  lottie: ^3.1.2
+
 
 dev_dependencies:
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -69,6 +67,16 @@ flutter:
     - images/
     - assets/images/google.png
     - assets/images/upgrade.png
+    - assets/animations/success.json
+    - assets/animations/failure.json
+    - assets/animations/archive.json
+    - assets/animations/archivev1.json
+    - assets/animations/archivev2.json
+    - assets/animations/disable.json
+    - assets/animations/succescheckout.json
+    - assets/animations/addtocart.json
+    - assets/animations/like.json
+    - assets/animations/failed.json
   #   - images/a_dot_ham.jpeg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

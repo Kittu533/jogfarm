@@ -1,43 +1,205 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:jogfarmv1/model/cart.dart';
+import 'package:jogfarmv1/screens/chat/chat_screen.dart';
 
-class ProductDetailScreen extends StatelessWidget {
-  const ProductDetailScreen({super.key});
+class ProductDetailScreen extends StatefulWidget {
+  final String productId;
+  final String imageUrl;
+  final String price;
+  final String name;
+  final String sellerName;
+  final String sellerAddress;
+  final String description;
+  final String location;
+  final double latitude;
+  final double longitude;
+  final int categoryId;
+  final int typeId;
+  final bool isActive;
+  final DateTime createdAt;
+  final int unitId;
+  final List<String> images;
+  final double weight;
+  final int age;
+  final int stock;
+  final String sellerId;
+
+  ProductDetailScreen({
+    required this.productId,
+    required this.imageUrl,
+    required this.price,
+    required this.name,
+    required this.description,
+    required this.location,
+    required this.latitude,
+    required this.longitude,
+    required this.categoryId,
+    required this.sellerName,
+    required this.sellerAddress,
+    required this.typeId,
+    required this.isActive,
+    required this.createdAt,
+    required this.unitId,
+    required this.images,
+    required this.weight,
+    required this.age,
+    required this.stock,
+    required this.sellerId,
+  });
+
+  @override
+  _ProductDetailScreenState createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends State<ProductDetailScreen>
+    with SingleTickerProviderStateMixin {
+  bool isLiked = false;
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 1),
+      vsync: this,
+    );
+  }
+
+  void toggleLike() {
+    setState(() {
+      isLiked = !isLiked;
+      if (isLiked) {
+        _animationController.forward();
+      } else {
+        _animationController.reverse();
+      }
+    });
+  }
+
+  Future<void> addToCart(BuildContext context) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? userId = prefs.getString('userId');
+
+    if (userId != null) {
+      final cartItem = Cart(
+        cartId: FirebaseFirestore.instance.collection('cart').doc().id,
+        userId: userId,
+        priceProduct: double.parse(widget.price),
+        locationProduct: widget.location,
+        sellerName: widget.sellerName,
+        productName: widget.name,
+        imageProduct: widget.imageUrl,
+        quantity: 1,
+        addedAt: DateTime.now(),
+        productId: widget.productId,
+      );
+
+      FirebaseFirestore.instance
+          .collection('cart')
+          .doc(cartItem.cartId)
+          .set(cartItem.toMap())
+          .then((value) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Produk ditambahkan ke keranjang')),
+        );
+        _showAddToCartAnimation(context);
+      }).catchError((error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menambahkan ke keranjang')),
+        );
+      });
+    }
+  }
+
+  void _showAddToCartAnimation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Produk berhasil ditambahkan'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Lottie.asset(
+                'assets/animations/addtocart.json',
+                repeat: false,
+                width: 150,
+                height: 150,
+              ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void navigateToChat(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(
+          sellerName: widget.sellerName,
+          sellerProfileImage: 'URL gambar profil penjual',
+        ),
+      ),
+    );
+  }
+
+  Future<List<QueryDocumentSnapshot>> _fetchOtherProducts() async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection('products')
+        .where('seller_id', isEqualTo: widget.sellerId)
+        .limit(6)
+        .get();
+    return querySnapshot.docs;
+  }
+
+  Future<List<QueryDocumentSnapshot>> _fetchRecommendations() async {
+    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+        .collection('products')
+        .where('seller_id', isNotEqualTo: widget.sellerId)
+        .limit(6)
+        .get();
+    return querySnapshot.docs;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
+        title: Text(
+          'Detail produk',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        title: const Text('Kembali', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF2D4739),
+        automaticallyImplyLeading:
+            false, // Menonaktifkan panah kembali secara otomatis
       ),
-      extendBodyBehindAppBar: true,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Stack(
               children: [
-                Image.asset(
-                  'images/product_image.jpg', // Ganti dengan jalur gambar yang sesuai
+                Container(
+                  height: 350, // Ukuran gambar produk lebih besar
                   width: double.infinity,
-                  height: 300,
-                  fit: BoxFit.cover,
-                ),
-                Positioned(
-                  left: 10,
-                  top: 40,
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: NetworkImage(widget.imageUrl),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ],
@@ -47,132 +209,253 @@ class ProductDetailScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Rp. 6.000.000',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const Text(
-                    'Sapi metal',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 8),
                   Row(
-                    children: const [
-                      Icon(Icons.visibility, size: 16, color: Colors.grey),
-                      SizedBox(width: 4),
-                      Text('Dilihat 13x', style: TextStyle(color: Colors.grey)),
-                      Spacer(),
-                      Icon(Icons.favorite_border, size: 20, color: Colors.grey),
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Rp. ${widget.price}',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        iconSize:
+                            16, // Ukuran yang sama untuk ikon yang belum di-tap
+                        icon: isLiked
+                            ? SizedBox(
+                                width: 32,
+                                height: 32,
+                                child: Lottie.asset(
+                                  'assets/animations/like.json',
+                                  controller: _animationController,
+                                  onLoaded: (composition) {
+                                    _animationController.duration =
+                                        composition.duration;
+                                  },
+                                ),
+                              )
+                            : Icon(
+                                Icons.favorite_border,
+                                color: Colors.black,
+                              ),
+                        onPressed: toggleLike,
+                      ),
                     ],
                   ),
-                  const Divider(height: 32),
-                  const Text(
+                  Text(
+                    widget.name,
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Icon(Icons.remove_red_eye, size: 16, color: Colors.grey),
+                      SizedBox(width: 4),
+                      Text('Dilihat 13x', style: TextStyle(color: Colors.grey)),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  Text(
                     'Detail produk',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 8),
-                  _buildProductDetailRow('Nama Produk', 'Sapi metal'),
-                  _buildProductDetailRow('Kategori', 'Mamalia'),
-                  _buildProductDetailRow('Berat produk', '300 Kg'),
-                  _buildProductDetailRow('Usia hewan', '12 Bulan'),
-                  _buildProductDetailRow('Lokasi', 'Yogyakarta'),
-                  const Divider(height: 32),
-                  const Text(
+                  SizedBox(height: 8),
+                  _buildDetailRow('Nama Produk', widget.name),
+                  _buildDetailRow(
+                      'Kategori', _getCategoryName(widget.categoryId)),
+                  _buildDetailRow('Berat produk', '${widget.weight} Kg'),
+                  _buildDetailRow('Usia hewan', '${widget.age} Bulan'),
+                  _buildDetailRow('Stok', '${widget.stock}'),
+                  _buildDetailRow('Lokasi', widget.location),
+                  SizedBox(height: 16),
+                  Text(
                     'Deskripsi Produk',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Sapi Metal adalah sapi unggul dengan pertumbuhan cepat dan daging berkualitas tinggi. Dipelihara dengan standar terbaik, sapi ini menjamin keuntungan bagi peternak dan kualitas untuk konsumen.\n\nPembelian sapi Metal kami memastikan Anda mendapatkan hewan sehat dan produktif. Investasi ini cocok untuk meningkatkan hasil peternakan Anda.',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-                      ),
-                      onPressed: () {
-                        // Handle chat action
-                      },
-                      child: const Text('Chat Sekarang', style: TextStyle(fontSize: 18)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 8),
+                  Text(widget.description),
+                  SizedBox(height: 16),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text(
-                        'Lainnya ditoko ini',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            addToCart(context);
+                          },
+                          icon: Icon(Icons.add_shopping_cart,
+                              color: Colors.green),
+                          label: Text(
+                            '+Keranjang',
+                            style: TextStyle(color: Colors.green),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: Colors.green),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
                       ),
-                      Text(
-                        'Lihat semua',
-                        style: TextStyle(fontSize: 14, color: Colors.blue),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            navigateToChat(context);
+                          },
+                          icon: Icon(Icons.shopping_cart_checkout,
+                              color: Colors.white),
+                          label: Text(
+                            'Beli',
+                            style: TextStyle(color: Colors.green),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  _buildProductRecommendations(),
-                  const Divider(height: 32),
-                  const Text(
-                    'Rekomendasi Lain',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildProductRecommendations(),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProductDetailRow(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          Text(title, style: const TextStyle(fontSize: 16, color: Colors.grey)),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProductRecommendations() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _buildProductCard('Sapi metal', 'Rp. 6.000.000', 'images/product_image.jpg'),
-          _buildProductCard('Kambing Super', 'Rp. 6.000.000', 'images/product_image.jpg'),
-          _buildProductCard('Ayam Boiler', 'Rp. 100.000', 'images/product_image.jpg'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProductCard(String title, String price, String imageUrl) {
-    return Card(
-      margin: const EdgeInsets.all(8.0),
-      child: SizedBox(
-        width: 150,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Image.asset(imageUrl, width: 150, height: 100, fit: BoxFit.cover),
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundImage: AssetImage(
+                        'images/user_profil.png'), // Ubah jalur sesuai dengan gambar profil Anda
+                    radius: 24.0,
+                  ),
+                  SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.sellerName,
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      Text(widget.sellerAddress), // Tampilkan alamat penjual
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(price, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  Text(title),
+                  Text(
+                    'Lainnya ditoko ini',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  FutureBuilder<List<QueryDocumentSnapshot>>(
+                    future: _fetchOtherProducts(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                      }
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error loading products'));
+                      }
+                      final otherProducts = snapshot.data!;
+                      return SizedBox(
+                        height: 200,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: otherProducts.length,
+                          itemBuilder: (context, index) {
+                            final product = otherProducts[index];
+                            return Container(
+                              width: 150,
+                              margin: const EdgeInsets.all(8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Image.network(
+                                    product['images'][0],
+                                    height: 100,
+                                    width: 150,
+                                    fit: BoxFit.cover,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    product['name'],
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  Text('Rp. ${product['price']} /ekor'),
+                                  Text(product['location']),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Rekomendasi Lain',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  FutureBuilder<List<QueryDocumentSnapshot>>(
+                    future: _fetchRecommendations(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                      }
+                      if (snapshot.hasError) {
+                        return Center(child: Text('Error loading products'));
+                      }
+                      final recommendations = snapshot.data!;
+                      return SizedBox(
+                        height: 200,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: recommendations.length,
+                          itemBuilder: (context, index) {
+                            final product = recommendations[index];
+                            return Container(
+                              width: 150,
+                              margin: const EdgeInsets.all(8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Image.network(
+                                    product['images'][0],
+                                    height: 100,
+                                    width: 150,
+                                    fit: BoxFit.cover,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    product['name'],
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  Text('Rp. ${product['price']} /ekor'),
+                                  Text(product['location']),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -181,20 +464,38 @@ class ProductDetailScreen extends StatelessWidget {
       ),
     );
   }
-}
 
-void main() {
-  runApp(const MyApp());
-}
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: Colors.grey[600])),
+          Text(value, style: TextStyle(color: Colors.black)),
+        ],
+      ),
+    );
+  }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  String _getCategoryName(int categoryId) {
+    switch (categoryId) {
+      case 1:
+        return 'Unggas';
+      case 2:
+        return 'Mamalia';
+      case 3:
+        return 'Hewan Akuatik';
+      case 4:
+        return 'Perlengkapan';
+      default:
+        return 'Lainnya';
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: const ProductDetailScreen(),
-    );
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 }
