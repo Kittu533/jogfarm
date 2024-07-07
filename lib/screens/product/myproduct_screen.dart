@@ -22,7 +22,8 @@ class MyProductScreen extends StatelessWidget {
             .toList());
   }
 
-  Future<void> _updateProductStatus(BuildContext context, String productId, bool isActive) async {
+  Future<void> _updateProductStatus(
+      BuildContext context, String productId, bool isActive) async {
     await FirebaseFirestore.instance
         .collection('products')
         .doc(productId)
@@ -38,33 +39,34 @@ class MyProductScreen extends StatelessWidget {
     _showDeleteAnimation(context);
   }
 
-void _showStatusUpdateAnimation(BuildContext context, bool isActive) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text(isActive ? 'Produk Diaktifkan' : 'Produk Diarsipkan'),
-        content: SizedBox(
-          width: 200, // Adjust width as needed
-          height: 200, // Adjust height as needed
-          child: Lottie.asset(
-            isActive ? 'assets/animations/success.json' : 'assets/animations/archivev1.json',
-            repeat: false,
+  void _showStatusUpdateAnimation(BuildContext context, bool isActive) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(isActive ? 'Produk Diaktifkan' : 'Produk Diarsipkan'),
+          content: SizedBox(
+            width: 200, // Adjust width as needed
+            height: 200, // Adjust height as needed
+            child: Lottie.asset(
+              isActive
+                  ? 'assets/animations/success.json'
+                  : 'assets/animations/archivev1.json',
+              repeat: false,
+            ),
           ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            child: Text('OK'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
-
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   void _showDeleteAnimation(BuildContext context) {
     showDialog(
@@ -103,6 +105,15 @@ void _showStatusUpdateAnimation(BuildContext context, bool isActive) {
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           bottom: const TabBar(
+            labelColor: Colors.white,
+            indicator: UnderlineTabIndicator(
+              borderSide: BorderSide(
+                  width: 4.0, color: Color.fromARGB(255, 0, 255, 13)),
+              insets: EdgeInsets.symmetric(
+                  horizontal: 50.0), // Lebar horizontal dari indikator
+            ), // Warna teks tab yang terpilih
+            unselectedLabelColor:
+                Colors.grey, // Warna teks tab yang tidak terpilih
             tabs: [
               Tab(text: 'Produk'),
               Tab(text: 'Pesanan'),
@@ -149,30 +160,51 @@ void _showStatusUpdateAnimation(BuildContext context, bool isActive) {
                     child: Column(
                       children: [
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Image.network(
-                              product.images.isNotEmpty
-                                  ? product.images[0]
-                                  : 'images/default_product.png', // Ganti dengan jalur gambar yang sesuai
-                              width: 100,
-                              height: 100,
-                              fit: BoxFit.cover,
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(
+                                  8.0), // Sesuaikan nilai radius sesuai kebutuhan
+                              child: Image.network(
+                                product.images.isNotEmpty
+                                    ? product.images[0]
+                                    : 'images/default_product.png', // Ganti dengan jalur gambar yang sesuai
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                             const SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  product.name,
-                                  style: const TextStyle(
-                                      fontSize: 16, fontWeight: FontWeight.bold),
-                                ),
-                                Text(
-                                  'Rp${product.price}',
-                                  style: const TextStyle(
-                                      fontSize: 14, color: Colors.blue),
-                                ),
-                              ],
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    product.name,
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  Text(
+                                    'Rp${product.price}',
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        color: Color.fromARGB(255, 0, 0, 0)),
+                                  ),
+                                  Text(
+                                    'Stok :${product.stock.toString()}',
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        color: Color.fromARGB(255, 0, 0, 0)),
+                                  ),
+                                  Text(
+                                    'Lokasi :${product.location}',
+                                    style: const TextStyle(
+                                        fontSize: 16,
+                                        color: Color.fromARGB(255, 0, 0, 0)),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -186,15 +218,38 @@ void _showStatusUpdateAnimation(BuildContext context, bool isActive) {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (context) => EditProductScreen(product: product)), // Pass the product here
+                                      builder: (context) => EditProductScreen(
+                                          product:
+                                              product)), // Pass the product here
                                 );
                               },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors
+                                    .green, // Ganti dengan warna latar belakang yang diinginkan
+                                foregroundColor: Colors
+                                    .white, // Ganti dengan warna teks yang diinginkan
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      10), // Ganti dengan nilai radius yang diinginkan
+                                ),
+                              ),
                               child: const Text('Ubah'),
                             ),
                             ElevatedButton(
                               onPressed: () {
-                                _updateProductStatus(context, product.productId, !product.isActive);
+                                _updateProductStatus(context, product.productId,
+                                    !product.isActive);
                               },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors
+                                    .green, // Ganti dengan warna latar belakang yang diinginkan
+                                foregroundColor: Colors
+                                    .white, // Ganti dengan warna teks yang diinginkan
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      10), // Ganti dengan nilai radius yang diinginkan
+                                ),
+                              ),
                               child: Text(
                                   product.isActive ? 'Arsipkan' : 'Aktifkan'),
                             ),
@@ -202,10 +257,20 @@ void _showStatusUpdateAnimation(BuildContext context, bool isActive) {
                               onPressed: () {
                                 _deleteProduct(context, product.productId);
                               },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors
+                                    .green, // Ganti dengan warna latar belakang yang diinginkan
+                                foregroundColor: Colors
+                                    .white, // Ganti dengan warna teks yang diinginkan
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      10), // Ganti dengan nilai radius yang diinginkan
+                                ),
+                              ),
                               child: const Text('Hapus'),
                             ),
                           ],
-                        ),
+                        )
                       ],
                     ),
                   ),
@@ -224,23 +289,23 @@ void _showStatusUpdateAnimation(BuildContext context, bool isActive) {
   }
 }
 
-class IconText extends StatelessWidget {
-  final IconData icon;
-  final String text;
+// class IconText extends StatelessWidget {
+//   final IconData icon;
+//   final String text;
 
-  const IconText({super.key, required this.icon, required this.text});
+//   const IconText({super.key, required this.icon, required this.text});
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: Colors.grey),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
-        ),
-      ],
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Row(
+//       children: [
+//         Icon(icon, size: 16, color: Colors.grey),
+//         const SizedBox(width: 4),
+//         Text(
+//           text,
+//           style: const TextStyle(fontSize: 12, color: Colors.grey),
+//         ),
+//       ],
+//     );
+//   }
+// }

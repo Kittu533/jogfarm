@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jogfarmv1/model/cart.dart';
-import 'package:jogfarmv1/screens/chat/chat_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -144,17 +143,21 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     );
   }
 
-  void navigateToChat(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChatScreen(
-          sellerName: widget.sellerName,
-          sellerProfileImage: 'URL gambar profil penjual',
-        ),
-      ),
-    );
-  }
+  // void navigateToChat(BuildContext context) {
+  //   final chatId =
+  //       '${widget.sellerId}_${widget.productId}'; // Contoh ID obrolan yang dibuat dari sellerId dan productId
+
+  //   Navigator.push(
+  //     context,
+  //     MaterialPageRoute(
+  //       builder: (context) => ChatScreen(
+  //         sellerName: widget.sellerName,
+  //         sellerProfileImage: 'URL gambar profil penjual',
+  //         chatId: chatId,
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Future<List<QueryDocumentSnapshot>> _fetchOtherProducts() async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
@@ -301,26 +304,28 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         ),
                       ),
                       SizedBox(width: 8),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            navigateToChat(context);
-                          },
-                          icon: Icon(Icons.shopping_cart_checkout,
-                              color: Colors.white),
-                          label: Text(
-                            'Beli',
-                            style: TextStyle(color: Colors.green),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            padding: EdgeInsets.symmetric(vertical: 16),
-                          ),
-                        ),
-                      ),
+                      // Expanded(
+                      //   child: ElevatedButton.icon(
+                      //     onPressed: () {
+                      //       navigateToChat(context);
+                      //     },
+                      //     icon: Icon(Icons.shopping_cart_checkout,
+                      //         color: Colors.white),
+                      //     label: Text(
+                      //       'Beli',
+                      //       style: TextStyle(
+                      //           color:
+                      //               const Color.fromARGB(255, 255, 255, 255)),
+                      //     ),
+                      //     style: ElevatedButton.styleFrom(
+                      //       backgroundColor: Colors.green,
+                      //       shape: RoundedRectangleBorder(
+                      //         borderRadius: BorderRadius.circular(10),
+                      //       ),
+                      //       padding: EdgeInsets.symmetric(vertical: 16),
+                      //     ),
+                      //   ),
+                      // ),
                     ],
                   ),
                 ],

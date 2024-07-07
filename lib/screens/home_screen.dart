@@ -1,8 +1,9 @@
+import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_notch_bottom_bar.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:jogfarmv1/screens/cart/cartpage_screen.dart';
-import 'package:jogfarmv1/screens/product/addproduct_screen.dart';
-import 'package:jogfarmv1/screens/chat/chatall_screen.dart';
 import 'package:jogfarmv1/screens/product/myproduct_screen.dart';
 import 'package:jogfarmv1/screens/product/detailproduct_screen.dart';
 import 'package:jogfarmv1/screens/product/uploadproduct_screen.dart';
@@ -21,15 +22,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   bool _isLoggedIn = false;
+  bool _isSeller = false;
   bool _showLoginPopup = false;
-
-  static List<Widget> _widgetOptions = <Widget>[
-    HomePage(),
-    const ChatAllScreen(),
-    UploadProductScreen(),
-    const MyProductScreen(),
-    const SettingsScreen(),
-  ];
+  List<Widget> _widgetOptions = [];
 
   @override
   void initState() {
@@ -37,18 +32,30 @@ class _HomeScreenState extends State<HomeScreen> {
     _checkLoginStatus();
   }
 
+  final NotchBottomBarController _controller =
+      NotchBottomBarController(index: 0);
+
   Future<void> _checkLoginStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-    if (!isLoggedIn) {
-      setState(() {
+    bool isSeller = prefs.getBool('isSeller') ?? false;
+
+    setState(() {
+      _isLoggedIn = isLoggedIn;
+      _isSeller = isSeller;
+
+      _widgetOptions = [
+        HomePage(),
+        // ChatMainScreen(isSeller: _isSeller),
+        UploadProductScreen(),
+        const MyProductScreen(),
+        const SettingsScreen(),
+      ];
+
+      if (!isLoggedIn) {
         _showLoginPopup = true;
-      });
-    } else {
-      setState(() {
-        _isLoggedIn = true;
-      });
-    }
+      }
+    });
   }
 
   void _navigateToLogin() {
@@ -136,35 +143,61 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
           ],
         ),
-        bottomNavigationBar: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Home',
+        bottomNavigationBar: AnimatedNotchBottomBar(
+          notchBottomBarController: _controller,
+          color: const Color(0xFF2D4739),
+          showLabel: true,
+          textOverflow: TextOverflow.ellipsis,
+          maxLine: 1,
+          shadowElevation: 2,
+          kBottomRadius: 0, // Menghapus radius
+          notchColor: const Color(0xFF2D4739),
+          removeMargins: true, // Menghapus margin untuk mengisi penuh
+          bottomBarWidth:
+              MediaQuery.of(context).size.width, // Memastikan lebarnya penuh
+          showShadow: false,
+          durationInMilliSeconds: 300,
+          itemLabelStyle: const TextStyle(fontSize: 12, color: Colors.white),
+          elevation: 1,
+          bottomBarItems: const [
+            BottomBarItem(
+              inActiveItem: Icon(Icons.home_filled,
+                  color: Color.fromARGB(255, 255, 255, 255)),
+              activeItem: Icon(Icons.home_filled,
+                  color: Color.fromARGB(255, 255, 255, 255)),
+              itemLabel: 'Home',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.chat_bubble),
-              label: 'Chat',
+            BottomBarItem(
+              inActiveItem: Icon(Icons.chat_bubble,
+                  color: Color.fromARGB(255, 255, 255, 255)),
+              activeItem: Icon(Icons.chat_bubble,
+                  color: Color.fromARGB(255, 255, 255, 255)),
+              itemLabel: 'Chat',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle_outline),
-              label: 'Tambah',
+            BottomBarItem(
+              inActiveItem: Icon(Icons.add_circle_outline,
+                  color: Color.fromARGB(255, 255, 255, 255)),
+              activeItem: Icon(Icons.add_circle_outline,
+                  color: Color.fromARGB(255, 255, 255, 255)),
+              itemLabel: 'Tambah',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.inventory),
-              label: 'Produk',
+            BottomBarItem(
+              inActiveItem: Icon(Icons.inventory,
+                  color: Color.fromARGB(255, 255, 255, 255)),
+              activeItem: Icon(Icons.inventory,
+                  color: Color.fromARGB(255, 255, 255, 255)),
+              itemLabel: 'Produk',
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
-              label: 'Pengaturan',
+            BottomBarItem(
+              inActiveItem: Icon(Icons.settings,
+                  color: Color.fromARGB(255, 255, 255, 255)),
+              activeItem: Icon(Icons.settings,
+                  color: Color.fromARGB(255, 255, 255, 255)),
+              itemLabel: 'Pengaturan',
             ),
           ],
-          currentIndex: _selectedIndex,
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.white54,
-          backgroundColor: const Color(0xFF2D4739), // Warna hijau sesuai gambar
           onTap: _onItemTapped,
+          kIconSize: 24.0,
         ),
       ),
     );
@@ -178,8 +211,10 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Future<String> _fetchSellerAddress(String sellerId) async {
-    DocumentSnapshot userDoc =
-        await FirebaseFirestore.instance.collection('users').doc(sellerId).get();
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(sellerId)
+        .get();
     return userDoc['address'] ?? '';
   }
 
@@ -189,6 +224,11 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    List<String> imgList = [
+      'images/news_image.jpg',
+      'images/news_image.jpg',
+      'images/news_image.jpg',
+    ];
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(120.0),
@@ -204,17 +244,21 @@ class _HomePageState extends State<HomePage> {
                   radius: 24.0,
                 ),
                 const SizedBox(width: 16),
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Pencarian',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
+                Flexible(
+                  child: SizedBox(
+                    height: 50.0, // Ubah tinggi sesuai kebutuhan Anda
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Pencarian',
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: EdgeInsets.symmetric(vertical: 14.0),
                       ),
-                      filled: true,
-                      fillColor: Colors.white,
                     ),
                   ),
                 ),
@@ -245,10 +289,6 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Location(),
-              ),
               const SizedBox(height: 4),
               GridView.count(
                 crossAxisCount: 4,
@@ -257,14 +297,23 @@ class _HomePageState extends State<HomePage> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 children: const [
-                  _CategoryIcon(iconData: Icons.location_on, label: 'Terdekat'),
-                  _CategoryIcon(iconData: Icons.local_offer, label: 'Big Deals'),
-                  _CategoryIcon(iconData: Icons.favorite, label: 'Populer'),
-                  _CategoryIcon(iconData: Icons.pets, label: 'Unggas'),
-                  _CategoryIcon(iconData: Icons.agriculture, label: 'Mamalia'),
-                  _CategoryIcon(iconData: Icons.grass, label: 'Pakan'),
-                  _CategoryIcon(iconData: Icons.home, label: 'Kandang'),
-                  _CategoryIcon(iconData: Icons.more_horiz, label: 'Lainnya'),
+                  _CategoryIcon(
+                      iconData: FontAwesomeIcons.locationDot,
+                      label: 'Terdekat'),
+                  _CategoryIcon(
+                      iconData: FontAwesomeIcons.tag, label: 'Big Deals'),
+                  _CategoryIcon(
+                      iconData: FontAwesomeIcons.heart, label: 'Populer'),
+                  _CategoryIcon(
+                      iconData: FontAwesomeIcons.dove, label: 'Unggas'),
+                  _CategoryIcon(
+                      iconData: FontAwesomeIcons.dog, label: 'Mamalia'),
+                  _CategoryIcon(
+                      iconData: FontAwesomeIcons.leaf, label: 'Pakan'),
+                  _CategoryIcon(
+                      iconData: FontAwesomeIcons.home, label: 'Kandang'),
+                  _CategoryIcon(
+                      iconData: FontAwesomeIcons.ellipsisH, label: 'Lainnya'),
                 ],
               ),
               Padding(
@@ -280,25 +329,21 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Container(
-                      height: 150,
-                      decoration: BoxDecoration(
-                        image: const DecorationImage(
-                          image: AssetImage('images/news_image.jpg'),
-                          fit: BoxFit.cover,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
+                    CarouselSlider(
+                      options: CarouselOptions(
+                        autoPlay: true,
+                        autoPlayInterval: const Duration(seconds: 4),
+                        enlargeCenterPage: true,
+                        viewportFraction: 1.0,
                       ),
-                      child: const Padding(
-                        padding: EdgeInsets.all(8.0),
-                        child: Text(
-                          'Jelajah UMKM: Poktan Mutiara Indah Terapkan Tiga Pola Kunci Keberhasilan Ternak Sapi',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
+                      items: imgList
+                          .map((item) => Container(
+                                width: MediaQuery.of(context).size.width,
+                                child: Center(
+                                  child: Image.asset(item, fit: BoxFit.cover),
+                                ),
+                              ))
+                          .toList(),
                     ),
                   ],
                 ),
@@ -323,8 +368,10 @@ class _HomePageState extends State<HomePage> {
                           .limit(6)
                           .get(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
                         }
                         if (snapshot.hasError) {
                           return const Center(
@@ -359,7 +406,8 @@ class _HomePageState extends State<HomePage> {
                                       child: Text('Error loading address'));
                                 }
 
-                                final sellerAddress = addressSnapshot.data ?? '';
+                                final sellerAddress =
+                                    addressSnapshot.data ?? '';
 
                                 return _buildProductCard(
                                   context,
@@ -382,7 +430,8 @@ class _HomePageState extends State<HomePage> {
                                   product['stock'],
                                   product['user_name'], // Pass the userName
                                   sellerAddress, // Pass the sellerAddress
-                                  product['user_id'], // Pass the userId for fetching other products
+                                  product[
+                                      'user_id'], // Pass the userId for fetching other products
                                 );
                               },
                             );
@@ -484,6 +533,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   Text(name),
+                  Text(location)
                 ],
               ),
             ),
@@ -505,11 +555,10 @@ class _CategoryIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20.0),
-      color: Colors.greenAccent,
+      // color: Colors.greenAccent,
       child: Column(
         children: [
-          Icon(iconData,
-              size: 30, color: const Color.fromARGB(255, 23, 92, 28)),
+          FaIcon(iconData, size: 30, color: const Color(0xFF2D4739)),
           const SizedBox(height: 4),
           Text(label),
         ],
