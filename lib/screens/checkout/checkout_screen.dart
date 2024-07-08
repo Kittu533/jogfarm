@@ -1,157 +1,130 @@
 import 'package:flutter/material.dart';
+import 'package:jogfarmv1/model/cart.dart';
 
 class CheckoutScreen extends StatelessWidget {
-  final List<CartItem> cartItems;
-  final double totalPayment;
+  final List<Cart> cartItems;
 
-  const CheckoutScreen({Key? key, required this.cartItems, required this.totalPayment}) : super(key: key);
+  CheckoutScreen({required this.cartItems});
 
   @override
   Widget build(BuildContext context) {
+    double totalPrice = cartItems.fold(0, (sum, item) => sum + item.priceProduct * item.quantity);
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 23, 92, 28),
-        title: const Text(
-          'Checkout',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
+        title: const Text('Checkout', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF2D4739),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
         ),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildAddressSection(),
+              const SizedBox(height: 16),
+              _buildCartItemsSection(),
+              const SizedBox(height: 16),
+              _buildTotalPriceSection(totalPrice),
+              const SizedBox(height: 16),
+              _buildPlaceOrderButton(totalPrice),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddressSection() {
+    return Card(
+      child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.location_pin, color: Colors.black),
-                title: const Text(
-                  'Alamat Pengiriman:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: const Text(
-                  'Jl. Siliwangi, Jombor Lor, Sendangadi, Kec. Mlati, Kabupaten Sleman, Daerah Istimewa Yogyakarta 55285',
-                ),
-                trailing: Icon(Icons.arrow_forward_ios, color: Colors.black),
-              ),
-            ),
+        child: Row(
+          children: const [
+            Icon(Icons.location_on, size: 40, color: Color(0xFF2D4739)),
+            SizedBox(width: 8),
             Expanded(
-              child: ListView.builder(
-                itemCount: cartItems.length,
-                itemBuilder: (context, index) {
-                  return Card(
-                    child: Column(
-                      children: [
-                        ListTile(
-                          leading: Image.asset(cartItems[index].imagePath), // Ganti dengan path gambar Anda
-                          title: Text(cartItems[index].productName),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Rp. ${cartItems[index].price.toString()} / ${cartItems[index].unit}'),
-                              Text(cartItems[index].sellerName),
-                              Text('x${cartItems[index].quantity}'),
-                            ],
-                          ),
-                          trailing: Text(
-                            'Rp. ${cartItems[index].totalPrice.toString()}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ),
-                        Divider(),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Total Pesanan (${cartItems[index].quantity} hewan)',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                'Rp. ${cartItems[index].totalPrice.toString()}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                      ],
-                    ),
-                  );
-                },
+              child: Text(
+                'Alamat Pengiriman:\nJl. Siliwangi, Jombor Lor, Sendangadi, Kec. Mlati, Kabupaten Sleman, Daerah Istimewa Yogyakarta 55285',
+                style: TextStyle(fontSize: 16),
               ),
             ),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Total Pembayaran',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'Rp. ${totalPayment.toString()}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Add your order submission logic here
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 23, 92, 28),
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-                      ),
-                      child: const Text('Buat Pesanan'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            Icon(Icons.arrow_forward_ios, size: 20, color: Color(0xFF2D4739)),
           ],
         ),
       ),
     );
   }
-}
 
-class CartItem {
-  final String productName;
-  final double price;
-  final int quantity;
-  final String unit;
-  final String sellerName;
-  final String imagePath;
-  final double totalPrice;
+  Widget _buildCartItemsSection() {
+    return Column(
+      children: cartItems.map((cartItem) {
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Image.network(cartItem.imageProduct, width: 80, height: 80, fit: BoxFit.cover),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(cartItem.productName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          Text('Rp. ${cartItem.priceProduct} / ekor', style: const TextStyle(fontSize: 16, color: Colors.green)),
+                          Text('${cartItem.quantity} x', style: const TextStyle(fontSize: 16)),
+                          Text('Rp. ${cartItem.priceProduct * cartItem.quantity}', style: const TextStyle(fontSize: 16, color: Colors.green)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
 
-  CartItem({
-    required this.productName,
-    required this.price,
-    required this.quantity,
-    required this.unit,
-    required this.sellerName,
-    required this.imagePath,
-    required this.totalPrice,
-  });
+  Widget _buildTotalPriceSection(double totalPrice) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Total Pembayaran', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('Rp. $totalPrice', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceOrderButton(double totalPrice) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () {
+          // Handle order placement logic here
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF2D4739),
+          padding: const EdgeInsets.symmetric(vertical: 16.0),
+        ),
+        child: const Text('Buat Pesanan', style: TextStyle(color: Colors.white, fontSize: 18)),
+      ),
+    );
+  }
 }

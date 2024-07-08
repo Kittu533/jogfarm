@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jogfarmv1/screens/product/addproduct_screen.dart';
 
 class UploadProductScreen extends StatefulWidget {
@@ -10,6 +12,7 @@ class _UploadProductScreenState extends State<UploadProductScreen> {
   final _formKey = GlobalKey<FormState>();
   String? _category;
   String? _type;
+  bool _isKtpConfirmed = false;
 
   static const Map<String, List<String>> _categories = {
     'UNGGAS': [
@@ -93,12 +96,53 @@ class _UploadProductScreenState extends State<UploadProductScreen> {
   };
 
   @override
+  void initState() {
+    super.initState();
+    _checkKtpStatus();
+  }
+
+  Future<void> _checkKtpStatus() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    // Retrieve user ID from SharedPreferences or your authentication system
+    String? userId = prefs.getString('userId');
+    if (userId != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      if (userDoc.exists) {
+        setState(() {
+          _isKtpConfirmed = userDoc['is_ktp_confirmed'] ?? false;
+        });
+      }
+    }
+  }
+
+  void _showKtpNotConfirmedDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Konfirmasi KTP Diperlukan'),
+          content: const Text(
+              'Anda tidak bisa mengunggah produk karena Anda belum mengonfirmasi KTP. Silakan konfirmasi KTP terlebih dahulu untuk menjadi penjual.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'Upload produk',
-          style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFF2D4739),
       ),
@@ -168,16 +212,20 @@ class _UploadProductScreenState extends State<UploadProductScreen> {
               Center(
                 child: ElevatedButton(
                   onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AddProductScreen(
-                            categoryId: _categoryIds[_category]!,
-                            typeId: _typeIds[_type]!,
+                    if (_isKtpConfirmed) {
+                      if (_formKey.currentState!.validate()) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddProductScreen(
+                              categoryId: _categoryIds[_category]!,
+                              typeId: _typeIds[_type]!,
+                            ),
                           ),
-                        ),
-                      );
+                        );
+                      }
+                    } else {
+                      _showKtpNotConfirmedDialog();
                     }
                   },
                   style: ElevatedButton.styleFrom(

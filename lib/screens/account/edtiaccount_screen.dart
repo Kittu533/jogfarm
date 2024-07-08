@@ -8,6 +8,7 @@ import 'package:jogfarmv1/model/users.dart';
 import 'package:flutter/foundation.dart';
 import 'package:jogfarmv1/services/database_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -217,6 +218,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  void _onDateSelected(DateRangePickerSelectionChangedArgs args) {
+    if (args.value is DateTime) {
+      setState(() {
+        _dateOfBirthController.text = args.value.toIso8601String();
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -305,12 +314,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  TextField(
-                    controller: _dateOfBirthController,
-                    decoration: const InputDecoration(
-                      labelText: 'Date of Birth',
-                      prefixIcon: Icon(Icons.calendar_today),
-                    ),
+                  SfDateRangePicker(
+                    onSelectionChanged: _onDateSelected,
+                    initialSelectedDate: _currentUser?.dateOfBirth,
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:jogfarmv1/model/cart.dart';
+import 'package:jogfarmv1/screens/checkout/checkout_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MyCartScreen extends StatefulWidget {
@@ -10,6 +11,7 @@ class MyCartScreen extends StatefulWidget {
 
 class _MyCartScreenState extends State<MyCartScreen> {
   List<Cart> _cartItems = [];
+  List<Cart> _selectedItems = [];
   double _totalPrice = 0.0;
 
   @override
@@ -31,88 +33,42 @@ class _MyCartScreenState extends State<MyCartScreen> {
         List<Cart> fetchedItems = querySnapshot.docs.map((doc) {
           return Cart.fromMap(doc.data() as Map<String, dynamic>);
         }).toList();
-        
+
         setState(() {
           _cartItems = fetchedItems;
-          _totalPrice = _cartItems.fold(
-              0, (sum, item) => sum + item.priceProduct * item.quantity);
         });
       });
     }
   }
 
-  void _incrementQuantity(Cart cartItem) {
+  void _updateTotalPrice() {
     setState(() {
-      cartItem.quantity++;
-      _totalPrice += cartItem.priceProduct;
+      _totalPrice = _selectedItems.fold(
+          0, (sum, item) => sum + item.priceProduct * item.quantity);
     });
-    FirebaseFirestore.instance
-        .collection('cart')
-        .doc(cartItem.cartId)
-        .update({'quantity': cartItem.quantity});
   }
 
-  void _decrementQuantity(Cart cartItem) {
-    if (cartItem.quantity > 1) {
-      setState(() {
-        cartItem.quantity--;
-        _totalPrice -= cartItem.priceProduct;
-      });
-      FirebaseFirestore.instance
-          .collection('cart')
-          .doc(cartItem.cartId)
-          .update({'quantity': cartItem.quantity});
-    } else {
-      _showDeleteConfirmation(cartItem);
-    }
-  }
-
-  void _removeCartItem(Cart cartItem) {
-    setState(() {
-      _cartItems.remove(cartItem);
-      _totalPrice -= cartItem.priceProduct * cartItem.quantity;
-    });
-
-    FirebaseFirestore.instance.collection('cart').doc(cartItem.cartId).delete();
-  }
-
-  void _showDeleteConfirmation(Cart cartItem) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Hapus Produk'),
-          content: Text('Apakah Anda yakin ingin menghapus produk ini?'),
-          actions: [
-            TextButton(
-              child: Text('Batal'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text('Hapus'),
-              onPressed: () {
-                _removeCartItem(cartItem);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
+  void _navigateToCheckout() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CheckoutScreen(cartItems: _selectedItems),
+      ),
     );
-  }
-
-  void _checkout() {
-    // Implementasi checkout di sini
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Keranjang Saya (${_cartItems.length})'),
+        title: Text(
+          'Keranjang Saya (${_cartItems.length})',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: const Color(0xFF2D4739),
+        iconTheme: IconThemeData(
+          color: Colors.white, // Warna panah kembali
+        ),
       ),
       body: _cartItems.isEmpty
           ? Center(child: Text('Keranjang Anda kosong'))
@@ -127,7 +83,8 @@ class _MyCartScreenState extends State<MyCartScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (index == 0 ||
-                              _cartItems[index - 1].sellerName != cartItem.sellerName)
+                              _cartItems[index - 1].sellerName !=
+                                  cartItem.sellerName)
                             Padding(
                               padding: const EdgeInsets.all(8.0),
                               child: Row(
@@ -170,6 +127,20 @@ class _MyCartScreenState extends State<MyCartScreen> {
                                     icon: Icon(Icons.delete),
                                     onPressed: () => _showDeleteConfirmation(cartItem),
                                   ),
+                                  Checkbox(
+                                    value: _selectedItems.contains(cartItem),
+                                    activeColor: const Color(0xFF2D4739),
+                                    onChanged: (bool? value) {
+                                      setState(() {
+                                        if (value == true) {
+                                          _selectedItems.add(cartItem);
+                                        } else {
+                                          _selectedItems.remove(cartItem);
+                                        }
+                                        _updateTotalPrice();
+                                      });
+                                    },
+                                  ),
                                 ],
                               ),
                             ),
@@ -192,16 +163,84 @@ class _MyCartScreenState extends State<MyCartScreen> {
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: ElevatedButton(
-                    onPressed: _checkout,
-                    child: Text('Checkout'),
+                    onPressed: _selectedItems.isNotEmpty ? _navigateToCheckout : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2D4739),
-                      padding: EdgeInsets.symmetric(vertical: 16),
+                      minimumSize: const Size(double.infinity, 50),
                     ),
+                    child: const Text('Checkout',
+                        style: TextStyle(color: Colors.white , fontSize: 18)),
                   ),
                 ),
               ],
             ),
+    );
+  }
+
+  void _incrementQuantity(Cart cartItem) {
+    setState(() {
+      cartItem.quantity++;
+      if (_selectedItems.contains(cartItem)) {
+        _updateTotalPrice();
+      }
+    });
+    FirebaseFirestore.instance
+        .collection('cart')
+        .doc(cartItem.cartId)
+        .update({'quantity': cartItem.quantity});
+  }
+
+  void _decrementQuantity(Cart cartItem) {
+    if (cartItem.quantity > 1) {
+      setState(() {
+        cartItem.quantity--;
+        if (_selectedItems.contains(cartItem)) {
+          _updateTotalPrice();
+        }
+      });
+      FirebaseFirestore.instance
+          .collection('cart')
+          .doc(cartItem.cartId)
+          .update({'quantity': cartItem.quantity});
+    } else {
+      _showDeleteConfirmation(cartItem);
+    }
+  }
+
+  void _removeCartItem(Cart cartItem) {
+    setState(() {
+      _cartItems.remove(cartItem);
+      _selectedItems.remove(cartItem);
+      _updateTotalPrice();
+    });
+
+    FirebaseFirestore.instance.collection('cart').doc(cartItem.cartId).delete();
+  }
+
+  void _showDeleteConfirmation(Cart cartItem) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Hapus Produk'),
+          content: Text('Apakah Anda yakin ingin menghapus produk ini?'),
+          actions: [
+            TextButton(
+              child: Text('Batal'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Hapus'),
+              onPressed: () {
+                _removeCartItem(cartItem);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }

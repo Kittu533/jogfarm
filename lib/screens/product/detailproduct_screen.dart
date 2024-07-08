@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:jogfarmv1/model/cart.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -57,6 +58,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     with SingleTickerProviderStateMixin {
   bool isLiked = false;
   late AnimationController _animationController;
+  final PageController _pageController = PageController();
 
   @override
   void initState() {
@@ -82,7 +84,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? userId = prefs.getString('userId');
 
-    if (userId != null) {
+    if (userId != null && userId != widget.sellerId) {
       final cartItem = Cart(
         cartId: FirebaseFirestore.instance.collection('cart').doc().id,
         userId: userId,
@@ -110,6 +112,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           SnackBar(content: Text('Gagal menambahkan ke keranjang')),
         );
       });
+    } else {
+      openWarningSnackBar(context, 'Anda tidak bisa menambahkan produk Anda sendiri ke keranjang');
     }
   }
 
@@ -143,22 +147,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     );
   }
 
-  // void navigateToChat(BuildContext context) {
-  //   final chatId =
-  //       '${widget.sellerId}_${widget.productId}'; // Contoh ID obrolan yang dibuat dari sellerId dan productId
-
-  //   Navigator.push(
-  //     context,
-  //     MaterialPageRoute(
-  //       builder: (context) => ChatScreen(
-  //         sellerName: widget.sellerName,
-  //         sellerProfileImage: 'URL gambar profil penjual',
-  //         chatId: chatId,
-  //       ),
-  //     ),
-  //   );
-  // }
-
   Future<List<QueryDocumentSnapshot>> _fetchOtherProducts() async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection('products')
@@ -186,8 +174,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFF2D4739),
-        automaticallyImplyLeading:
-            false, // Menonaktifkan panah kembali secara otomatis
+        automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -196,12 +183,33 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
             Stack(
               children: [
                 Container(
-                  height: 350, // Ukuran gambar produk lebih besar
+                  height: 350,
                   width: double.infinity,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: NetworkImage(widget.imageUrl),
-                      fit: BoxFit.cover,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: widget.images.length,
+                    itemBuilder: (context, index) {
+                      return Image.network(
+                        widget.images[index],
+                        fit: BoxFit.cover,
+                      );
+                    },
+                  ),
+                ),
+                Positioned(
+                  bottom: 8,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: SmoothPageIndicator(
+                      controller: _pageController,
+                      count: widget.images.length,
+                      effect: WormEffect(
+                        dotWidth: 10,
+                        dotHeight: 10,
+                        activeDotColor: Colors.white,
+                        dotColor: Colors.grey,
+                      ),
                     ),
                   ),
                 ),
@@ -223,8 +231,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         ),
                       ),
                       IconButton(
-                        iconSize:
-                            16, // Ukuran yang sama untuk ikon yang belum di-tap
+                        iconSize: 16,
                         icon: isLiked
                             ? SizedBox(
                                 width: 32,
@@ -304,28 +311,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         ),
                       ),
                       SizedBox(width: 8),
-                      // Expanded(
-                      //   child: ElevatedButton.icon(
-                      //     onPressed: () {
-                      //       navigateToChat(context);
-                      //     },
-                      //     icon: Icon(Icons.shopping_cart_checkout,
-                      //         color: Colors.white),
-                      //     label: Text(
-                      //       'Beli',
-                      //       style: TextStyle(
-                      //           color:
-                      //               const Color.fromARGB(255, 255, 255, 255)),
-                      //     ),
-                      //     style: ElevatedButton.styleFrom(
-                      //       backgroundColor: Colors.green,
-                      //       shape: RoundedRectangleBorder(
-                      //         borderRadius: BorderRadius.circular(10),
-                      //       ),
-                      //       padding: EdgeInsets.symmetric(vertical: 16),
-                      //     ),
-                      //   ),
-                      // ),
                     ],
                   ),
                 ],
@@ -349,7 +334,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),
-                      Text(widget.sellerAddress), // Tampilkan alamat penjual
+                      Text(widget.sellerAddress),
                     ],
                   ),
                 ],
@@ -498,9 +483,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     }
   }
 
+  void openWarningSnackBar(BuildContext context, String text) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: Colors.yellow,
+      content: Row(
+        children: [
+          Icon(Icons.warning, color: Colors.black),
+          SizedBox(width: 5),
+          Text(
+            text,
+            style: TextStyle(fontSize: 16, color: Colors.black),
+          ),
+        ],
+      ),
+      duration: Duration(milliseconds: 12500),
+    ));
+  }
+
   @override
   void dispose() {
     _animationController.dispose();
+    _pageController.dispose();
     super.dispose();
   }
 }

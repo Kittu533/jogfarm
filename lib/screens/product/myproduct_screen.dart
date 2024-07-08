@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:jogfarmv1/model/products.dart';
-import 'package:jogfarmv1/screens/product/editmyproduct_screen.dart'; // Pastikan jalur ini benar
+import 'package:jogfarmv1/screens/product/editmyproduct_screen.dart';
 import 'package:lottie/lottie.dart';
 
 class MyProductScreen extends StatelessWidget {
@@ -46,8 +46,8 @@ class MyProductScreen extends StatelessWidget {
         return AlertDialog(
           title: Text(isActive ? 'Produk Diaktifkan' : 'Produk Diarsipkan'),
           content: SizedBox(
-            width: 200, // Adjust width as needed
-            height: 200, // Adjust height as needed
+            width: 200,
+            height: 200,
             child: Lottie.asset(
               isActive
                   ? 'assets/animations/success.json'
@@ -101,19 +101,16 @@ class MyProductScreen extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: const Color(0xFF2D4739),
           title: const Text(
-            'Produk Saya',
+            'Iklan Saya',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           bottom: const TabBar(
             labelColor: Colors.white,
             indicator: UnderlineTabIndicator(
-              borderSide: BorderSide(
-                  width: 4.0, color: Color.fromARGB(255, 0, 255, 13)),
-              insets: EdgeInsets.symmetric(
-                  horizontal: 50.0), // Lebar horizontal dari indikator
-            ), // Warna teks tab yang terpilih
-            unselectedLabelColor:
-                Colors.grey, // Warna teks tab yang tidak terpilih
+              borderSide: BorderSide(width: 4.0, color: Color.fromARGB(255, 0, 255, 13)),
+              insets: EdgeInsets.symmetric(horizontal: 50.0),
+            ),
+            unselectedLabelColor: Colors.grey,
             tabs: [
               Tab(text: 'Produk'),
               Tab(text: 'Pesanan'),
@@ -125,9 +122,9 @@ class MyProductScreen extends StatelessWidget {
         body: TabBarView(
           children: [
             _buildProductsTab(context),
-            _buildOrdersTab('Pesanan'),
-            _buildOrdersTab('Diantar'),
-            _buildOrdersTab('Dibatalkan'),
+            _buildOrdersTab('Pesanan', 'accepted'), // Pesanan
+            _buildOrdersTab('Diantar', 'delivered'), // Diantar
+            _buildOrdersTab('Dibatalkan', 'cancelled'), // Dibatalkan
           ],
         ),
       ),
@@ -163,12 +160,11 @@ class MyProductScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             ClipRRect(
-                              borderRadius: BorderRadius.circular(
-                                  8.0), // Sesuaikan nilai radius sesuai kebutuhan
+                              borderRadius: BorderRadius.circular(8.0),
                               child: Image.network(
                                 product.images.isNotEmpty
                                     ? product.images[0]
-                                    : 'images/default_product.png', // Ganti dengan jalur gambar yang sesuai
+                                    : 'images/default_product.png',
                                 width: 100,
                                 height: 100,
                                 fit: BoxFit.cover,
@@ -188,27 +184,23 @@ class MyProductScreen extends StatelessWidget {
                                   Text(
                                     'Rp${product.price}',
                                     style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Color.fromARGB(255, 0, 0, 0)),
+                                        fontSize: 16, color: Color.fromARGB(255, 0, 0, 0)),
                                   ),
                                   Text(
                                     'Stok :${product.stock.toString()}',
                                     style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Color.fromARGB(255, 0, 0, 0)),
+                                        fontSize: 16, color: Color.fromARGB(255, 0, 0, 0)),
                                   ),
                                   Text(
                                     'Lokasi :${product.location}',
                                     style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Color.fromARGB(255, 0, 0, 0)),
+                                        fontSize: 16, color: Color.fromARGB(255, 0, 0, 0)),
                                   ),
                                 ],
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 10),
                         const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -219,18 +211,14 @@ class MyProductScreen extends StatelessWidget {
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) => EditProductScreen(
-                                          product:
-                                              product)), // Pass the product here
+                                          product: product)),
                                 );
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors
-                                    .green, // Ganti dengan warna latar belakang yang diinginkan
-                                foregroundColor: Colors
-                                    .white, // Ganti dengan warna teks yang diinginkan
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                      10), // Ganti dengan nilai radius yang diinginkan
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
                               child: const Text('Ubah'),
@@ -241,13 +229,10 @@ class MyProductScreen extends StatelessWidget {
                                     !product.isActive);
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors
-                                    .green, // Ganti dengan warna latar belakang yang diinginkan
-                                foregroundColor: Colors
-                                    .white, // Ganti dengan warna teks yang diinginkan
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                      10), // Ganti dengan nilai radius yang diinginkan
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
                               child: Text(
@@ -258,13 +243,10 @@ class MyProductScreen extends StatelessWidget {
                                 _deleteProduct(context, product.productId);
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors
-                                    .green, // Ganti dengan warna latar belakang yang diinginkan
-                                foregroundColor: Colors
-                                    .white, // Ganti dengan warna teks yang diinginkan
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                      10), // Ganti dengan nilai radius yang diinginkan
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
                               child: const Text('Hapus'),
@@ -283,29 +265,102 @@ class MyProductScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrdersTab(String status) {
-    // Implementasi tab pesanan, diantar, dan dibatalkan
-    return Center(child: Text('Tab $status'));
+  Widget _buildOrdersTab(String status, String orderStatus) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('orders')
+          .where('status', isEqualTo: orderStatus)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text('Tidak ada pesanan'));
+        }
+        final orders = snapshot.data!.docs;
+        return ListView.builder(
+          itemCount: orders.length,
+          itemBuilder: (context, index) {
+            final order = orders[index];
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 10.0),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ListTile(
+                      leading: Image.network(
+                        order['imageUrl'],
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                      ),
+                      title: Text(order['buyerName']),
+                      subtitle: Text(order['buyerAddress']),
+                    ),
+                    const SizedBox(height: 10),
+                    Text('Total Pesanan: Rp${order['totalPrice']}'),
+                    Text('Status: ${order['status']}'),
+                    const SizedBox(height: 10),
+                    if (orderStatus == 'accepted') ...[
+                      ElevatedButton(
+                        onPressed: () {
+                          _updateOrderStatus(order.id, 'delivered');
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text('Antar Pesanan'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          _updateOrderStatus(order.id, 'cancelled');
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text('Tolak Pesanan'),
+                      ),
+                    ],
+                    if (orderStatus == 'delivered') ...[
+                      ElevatedButton(
+                        onPressed: () {
+                          _updateOrderStatus(order.id, 'cancelled');
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text('Batalkan'),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _updateOrderStatus(String orderId, String status) async {
+    await FirebaseFirestore.instance
+        .collection('orders')
+        .doc(orderId)
+        .update({'status': status});
   }
 }
-
-// class IconText extends StatelessWidget {
-//   final IconData icon;
-//   final String text;
-
-//   const IconText({super.key, required this.icon, required this.text});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Row(
-//       children: [
-//         Icon(icon, size: 16, color: Colors.grey),
-//         const SizedBox(width: 4),
-//         Text(
-//           text,
-//           style: const TextStyle(fontSize: 12, color: Colors.grey),
-//         ),
-//       ],
-//     );
-//   }
-// }

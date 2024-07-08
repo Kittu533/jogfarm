@@ -4,12 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:jogfarmv1/screens/cart/cartpage_screen.dart';
+import 'package:jogfarmv1/screens/chat/chatall_screen.dart';
+import 'package:jogfarmv1/screens/product/allproduct_screen.dart';
 import 'package:jogfarmv1/screens/product/myproduct_screen.dart';
 import 'package:jogfarmv1/screens/product/detailproduct_screen.dart';
 import 'package:jogfarmv1/screens/product/uploadproduct_screen.dart';
 import 'package:jogfarmv1/screens/setting_screen.dart';
 import 'package:jogfarmv1/screens/auth/login_screen.dart';
-import 'package:jogfarmv1/widgets/location_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -38,15 +39,15 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _checkLoginStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-    bool isSeller = prefs.getBool('isSeller') ?? false;
+    // bool isSeller = prefs.getBool('isSeller') ?? false;
 
     setState(() {
       _isLoggedIn = isLoggedIn;
-      _isSeller = isSeller;
+      // _isSeller = isSeller;
 
       _widgetOptions = [
         HomePage(),
-        // ChatMainScreen(isSeller: _isSeller),
+        const ChatAllScreen(),
         UploadProductScreen(),
         const MyProductScreen(),
         const SettingsScreen(),
@@ -350,8 +351,8 @@ class _HomePageState extends State<HomePage> {
               ),
               Padding(
                 padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
                       'Produk terbaru',
@@ -360,87 +361,100 @@ class _HomePageState extends State<HomePage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    FutureBuilder<QuerySnapshot>(
-                      future: FirebaseFirestore.instance
-                          .collection('products')
-                          .orderBy('created_at', descending: true)
-                          .limit(6)
-                          .get(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                              child: CircularProgressIndicator());
-                        }
-                        if (snapshot.hasError) {
-                          return const Center(
-                              child: Text('Error loading products'));
-                        }
-
-                        final products = snapshot.data!.docs;
-
-                        return GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 8,
-                            crossAxisSpacing: 8,
-                            childAspectRatio: 3 / 4,
-                          ),
-                          itemCount: products.length,
-                          itemBuilder: (context, index) {
-                            final product = products[index];
-                            return FutureBuilder<String>(
-                              future: _fetchSellerAddress(product['user_id']),
-                              builder: (context, addressSnapshot) {
-                                if (addressSnapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return const Center(
-                                      child: CircularProgressIndicator());
-                                }
-                                if (addressSnapshot.hasError) {
-                                  return const Center(
-                                      child: Text('Error loading address'));
-                                }
-
-                                final sellerAddress =
-                                    addressSnapshot.data ?? '';
-
-                                return _buildProductCard(
-                                  context,
-                                  product.id, // Pass the actual product ID
-                                  product['images'][0],
-                                  product['price'].toString(),
-                                  product['name'],
-                                  product['description'],
-                                  product['location'],
-                                  product['latitude'],
-                                  product['longitude'],
-                                  product['category_id'],
-                                  product['type_id'],
-                                  product['is_active'],
-                                  DateTime.parse(product['created_at']),
-                                  product['unit_id'],
-                                  List<String>.from(product['images']),
-                                  product['weight'],
-                                  product['age'],
-                                  product['stock'],
-                                  product['user_name'], // Pass the userName
-                                  sellerAddress, // Pass the sellerAddress
-                                  product[
-                                      'user_id'], // Pass the userId for fetching other products
-                                );
-                              },
-                            );
-                          },
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => AllProductsScreen()),
                         );
                       },
+                      child: const Text(
+                        'Produk Lainnya',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 8),
+              FutureBuilder<QuerySnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('products')
+                    .orderBy('created_at', descending: true)
+                    .limit(6)
+                    .get(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return const Center(child: Text('Error loading products'));
+                  }
+
+                  final products = snapshot.data!.docs;
+
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: 3 / 4,
+                    ),
+                    itemCount: products.length,
+                    itemBuilder: (context, index) {
+                      final product = products[index];
+                      return FutureBuilder<String>(
+                        future: _fetchSellerAddress(product['user_id']),
+                        builder: (context, addressSnapshot) {
+                          if (addressSnapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+                          if (addressSnapshot.hasError) {
+                            return const Center(
+                                child: Text('Error loading address'));
+                          }
+
+                          final sellerAddress =
+                              addressSnapshot.data ?? '';
+
+                          return _buildProductCard(
+                            context,
+                            product.id, // Pass the actual product ID
+                            product['images'][0],
+                            product['price'].toString(),
+                            product['name'],
+                            product['description'],
+                            product['location'],
+                            product['latitude'],
+                            product['longitude'],
+                            product['category_id'],
+                            product['type_id'],
+                            product['is_active'],
+                            DateTime.parse(product['created_at']),
+                            product['unit_id'],
+                            List<String>.from(product['images']),
+                            product['weight'],
+                            product['age'],
+                            product['stock'],
+                            product['user_name'], // Pass the userName
+                            sellerAddress, // Pass the sellerAddress
+                            product['user_id'], // Pass the userId for fetching other products
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
               ),
             ],
           ),
