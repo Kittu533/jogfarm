@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:jogfarmv1/model/products.dart';
 import 'package:lottie/lottie.dart';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:uuid/uuid.dart';
-import 'package:jogfarmv1/model/products.dart';
 
 class AddProductScreen extends StatefulWidget {
   final int categoryId;
@@ -35,7 +35,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final List<File> _images = [];
   bool _isLoading = false;
   String? _selectedUnit;
-  int _typeId = 1;
 
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -81,10 +80,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
           latitude: 0.0,
           longitude: 0.0,
           categoryId: widget.categoryId,
-          typeId: _typeId,
+          typeId: widget.typeId,
           isActive: true,
           createdAt: DateTime.now(),
-          unitId: 1,
+          unitId: _selectedUnit == 'ekor' ? 1 : 2,
+          unit: _selectedUnit, // Save the selected unit
           images: imageUrls,
         );
 
@@ -274,7 +274,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     onChanged: (newValue) {
                       setState(() {
                         _selectedUnit = newValue;
-                        _typeId = newValue == 'ekor' ? 1 : 2;
                       });
                     },
                     decoration: InputDecoration(labelText: 'Satuan'),

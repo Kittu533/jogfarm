@@ -43,7 +43,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final pickedFile =
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _newImages.add(File(pickedFile.path));
@@ -61,7 +62,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
         List<String> imageUrls = List<String>.from(_existingImages);
         for (File image in _newImages) {
           String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-          Reference storageRef = FirebaseStorage.instance.ref().child('product_images/$fileName');
+          Reference storageRef =
+              FirebaseStorage.instance.ref().child('product_images/$fileName');
           await storageRef.putFile(image);
           String downloadUrl = await storageRef.getDownloadURL();
           imageUrls.add(downloadUrl);
@@ -85,6 +87,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
           isActive: widget.product.isActive,
           createdAt: widget.product.createdAt,
           unitId: widget.product.unitId,
+          unit: _selectedUnit,
           images: imageUrls,
         );
 
@@ -108,14 +111,14 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   child: Text('OK'),
                   onPressed: () {
                     Navigator.of(context).pop(); // Close the dialog
-                    Navigator.of(context).pop(); // Go back to the previous screen
+                    Navigator.of(context)
+                        .pop(); // Go back to the previous screen
                   },
                 ),
               ],
             );
           },
         );
-
       } catch (e) {
         print(e);
         setState(() {
@@ -129,8 +132,17 @@ class _EditProductScreenState extends State<EditProductScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Edit Iklan'),
-        backgroundColor: Color(0xFF2D4739),
+        title: const Text(
+          'Edit Iklan',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF2D4739),
+        iconTheme: IconThemeData(
+          color: Colors.white, // Mengubah warna ikon panah menjadi putih
+        ),
+        actionsIconTheme: IconThemeData(
+          color: Colors.white, // Mengubah warna ikon tindakan menjadi putih
+        ),
       ),
       body: Stack(
         children: [
@@ -181,7 +193,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
                               ),
                             ],
                           );
-                        } else if (index < _existingImages.length + _newImages.length) {
+                        } else if (index <
+                            _existingImages.length + _newImages.length) {
                           return Stack(
                             children: [
                               Container(
@@ -189,7 +202,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
                                 margin: EdgeInsets.only(right: 10),
                                 decoration: BoxDecoration(
                                   image: DecorationImage(
-                                    image: FileImage(_newImages[index - _existingImages.length]),
+                                    image: FileImage(_newImages[
+                                        index - _existingImages.length]),
                                     fit: BoxFit.cover,
                                   ),
                                 ),
@@ -200,7 +214,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
                                 child: GestureDetector(
                                   onTap: () {
                                     setState(() {
-                                      _newImages.removeAt(index - _existingImages.length);
+                                      _newImages.removeAt(
+                                          index - _existingImages.length);
                                     });
                                   },
                                   child: Icon(
@@ -217,7 +232,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
                             child: Container(
                               width: 100,
                               color: Colors.grey[300],
-                              child: Icon(Icons.add_a_photo, color: Colors.grey[800]),
+                              child: Icon(Icons.add_a_photo,
+                                  color: Colors.grey[800]),
                             ),
                           );
                         }
@@ -254,7 +270,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   SizedBox(height: 20),
                   TextFormField(
                     controller: _priceController,
-                    decoration: InputDecoration(labelText: 'Harga hewan per satuan'),
+                    decoration:
+                        InputDecoration(labelText: 'Harga hewan per satuan'),
                     keyboardType: TextInputType.number,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -289,7 +306,8 @@ class _EditProductScreenState extends State<EditProductScreen> {
                   SizedBox(height: 20),
                   TextFormField(
                     controller: _ageController,
-                    decoration: InputDecoration(labelText: 'Usia Hewan (bulan)'),
+                    decoration:
+                        InputDecoration(labelText: 'Usia Hewan (bulan)'),
                     keyboardType: TextInputType.number,
                     validator: (value) {
                       if (value == null || value.isEmpty) {

@@ -18,8 +18,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   final DatabaseService _databaseService = DatabaseService();
+  bool _passwordVisible = false;
 
   Future<void> _register() async {
+    if (_usernameController.text.isEmpty ||
+        _emailController.text.isEmpty ||
+        _phoneNumberController.text.isEmpty ||
+        _passwordController.text.isEmpty) {
+      _showSnackBar('Semua kolom harus diisi', Colors.red);
+      return;
+    }
+
+    if (!_validatePassword(_passwordController.text)) {
+      _showSnackBar('Kata sandi harus minimal 8 karakter dan terdiri dari huruf dan angka', Colors.red);
+      return;
+    }
+
     try {
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text,
@@ -36,60 +50,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       await _databaseService.addUser(user);
 
-      _showSuccessDialog();
+      _showSnackBar('Akun berhasil dibuat!', Colors.green);
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
     } catch (e) {
-      _showErrorDialog(e);
+      _showSnackBar('Terjadi kesalahan: $e', Colors.red);
     }
   }
 
-  void _showSuccessDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          title: const Text('Berhasil'),
-          content: const Text('Akun berhasil dibuat!'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                );
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
+  bool _validatePassword(String password) {
+    final passwordRegex = RegExp(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$');
+    return passwordRegex.hasMatch(password);
   }
 
-  void _showErrorDialog(dynamic error) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          title: const Text('Error'),
-          content: Text('Terjadi kesalahan: $error'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: color,
+      content: Text(message),
+      duration: Duration(milliseconds: 2500),
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
+    final Color backgroundColor = const Color.fromARGB(255, 23, 92, 28);
+
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 23, 92, 28),
+      backgroundColor: backgroundColor,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -114,35 +103,61 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 20),
                       TextField(
                         controller: _usernameController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Username',
                           prefixIcon: Icon(Icons.person),
+                          hintText: 'Masukkan username Anda',
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: backgroundColor),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
                       TextField(
                         controller: _emailController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Email',
                           prefixIcon: Icon(Icons.email),
+                          hintText: 'Masukkan email Anda',
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: backgroundColor),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
                       TextField(
                         controller: _phoneNumberController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'No Telepon',
                           prefixIcon: Icon(Icons.phone),
+                          hintText: 'Masukkan nomor telepon Anda',
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: backgroundColor),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
                       TextField(
                         controller: _passwordController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Password',
-                          prefixIcon: Icon(Icons.lock),
+                          prefixIcon: const Icon(Icons.lock),
+                          hintText: 'min 8 karakter, huruf dan angka',
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _passwordVisible = !_passwordVisible;
+                              });
+                            },
+                          ),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: backgroundColor),
+                          ),
                         ),
-                        obscureText: true,
+                        obscureText: !_passwordVisible,
                       ),
                       const SizedBox(height: 20),
                       ElevatedButton(

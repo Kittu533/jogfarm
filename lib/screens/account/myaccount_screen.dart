@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:jogfarmv1/screens/account/edtiaccount_screen.dart';
+import 'package:jogfarmv1/screens/checkout/order_screen.dart';
+import 'package:jogfarmv1/screens/setting_screen.dart';
 import 'package:jogfarmv1/screens/verificationAccount/upgradeaccount_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jogfarmv1/screens/auth/login_screen.dart';
 import 'package:jogfarmv1/screens/home_screen.dart';
-import 'package:jogfarmv1/screens/account/profilebeforelogin_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:jogfarmv1/model/users.dart';
@@ -79,8 +80,6 @@ class _AkunSayaScreenState extends State<AkunSayaScreen> {
               child: CircularProgressIndicator(),
             ),
           );
-        } else if (snapshot.hasData && snapshot.data == false) {
-          return const ProfileBeforeLoginScreen();
         } else if (snapshot.hasData && snapshot.data == true) {
           return _buildLoggedInView();
         } else {
@@ -102,6 +101,12 @@ class _AkunSayaScreenState extends State<AkunSayaScreen> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFF2D4739),
+        iconTheme: IconThemeData(
+          color: Colors.white, // Mengubah warna ikon panah menjadi putih
+        ),
+        actionsIconTheme: IconThemeData(
+          color: Colors.white, // Mengubah warna ikon tindakan menjadi putih
+        ),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -177,7 +182,12 @@ class _AkunSayaScreenState extends State<AkunSayaScreen> {
                       children: [
                         const Icon(Icons.edit, color: Colors.green),
                         const SizedBox(width: 8),
-                        Text(userData?['address'] ?? 'Address'),
+                        Flexible(
+                          child: Text(
+                            userData?['address'] ?? 'Address',
+                            overflow: TextOverflow.visible,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -213,13 +223,21 @@ class _AkunSayaScreenState extends State<AkunSayaScreen> {
               title: const Text('Pesanan'),
               onTap: () {
                 // Add your help logic here
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => OrdersScreen()),
+                );
               },
             ),
             const Divider(),
             ListTile(
               title: const Text('Pengaturan'),
               onTap: () {
-                // Add your help logic here
+                // go to setting page
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => SettingsScreen()),
+                );
               },
             ),
             const Divider(),

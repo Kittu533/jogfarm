@@ -1,13 +1,13 @@
 import 'dart:developer';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:jogfarmv1/screens/auth/register_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jogfarmv1/screens/home_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:lottie/lottie.dart';
+import 'package:jogfarmv1/services/database_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -30,20 +30,112 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordVisible = false;
   }
 
+  Future<void> _sendPasswordResetEmail(String username) async {
+    try {
+      QuerySnapshot querySnapshot = await _firestore
+          .collection('users')
+          .where('username', isEqualTo: username)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        _showFailureNotification('Username tidak ditemukan');
+        return;
+      }
+
+      var userData = querySnapshot.docs[0];
+      await FirebaseAuth.instance
+          .sendPasswordResetEmail(email: userData['email']);
+      _showSuccessNotification('Email reset password telah dikirim');
+    } catch (e) {
+      log('Error sending password reset email: $e');
+      _showFailureNotification('Gagal mengirim email reset password: $e');
+    }
+  }
+
+  Future<void> _signInWithUsernamePassword() async {
+    try {
+      if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
+        _showFailureNotification('Semua kolom harus diisi');
+        return;
+      }
+
+      QuerySnapshot querySnapshot = await _firestore
+          .collection('users')
+          .where('username', isEqualTo: _usernameController.text)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        _showFailureNotification('Username tidak ditemukan');
+        return;
+      }
+
+      var userData = querySnapshot.docs[0];
+
+      // Authenticate the user with Firebase Authentication
+      UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+              email: userData['email'], password: _passwordController.text);
+
+      if (userCredential.user != null) {
+        // Save login status and user ID
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isLoggedIn', true);
+        await prefs.setString('userId', userCredential.user!.uid);
+
+        // Update the password in Firestore if it has changed
+        if (userData['password'] != _passwordController.text) {
+          await DatabaseService().updatePassword(
+              userCredential.user!.uid, _passwordController.text);
+        }
+
+        _showSuccessNotification('Login berhasil');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      } else {
+        _showFailureNotification('Password salah');
+      }
+    } catch (e) {
+      log('Error signing in with username and password: $e');
+      _showFailureNotification('Terjadi kesalahan saat masuk');
+    }
+  }
+
+  void _showSuccessNotification(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: Colors.green,
+      content: Text(message),
+      duration: Duration(milliseconds: 2500),
+    ));
+  }
+
+  void _showFailureNotification(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: Colors.red,
+      content: Text(message),
+      duration: Duration(milliseconds: 2500),
+    ));
+  }
+
   Future<void> _handleGoogleBtnClick(BuildContext context) async {
-    await _initialization; // Make sure Firebase is initialized
+    await _initialization; // Pastikan Firebase telah diinisialisasi
     _signInWithGoogle().then((user) async {
       log('\nUser: ${user.user.toString()}');
       log('\nUserAdditionalInfo: ${user.additionalUserInfo.toString()}');
 
-      // Save login status
+      // Simpan status login
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setBool('isLoggedIn', true);
 
-      _showSuccessAnimation();
+      _showSuccessNotification('Login dengan Google berhasil');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
     }).catchError((e) {
       log('Error signing in with Google: $e');
-      _showFailureAnimation();
+      _showFailureNotification('Gagal masuk dengan Google: $e');
     });
   }
 
@@ -65,113 +157,12 @@ class _LoginScreenState extends State<LoginScreen> {
     return await FirebaseAuth.instance.signInWithCredential(credential);
   }
 
-  Future<void> _signInWithUsernamePassword() async {
-    try {
-      QuerySnapshot querySnapshot = await _firestore
-          .collection('users')
-          .where('username', isEqualTo: _usernameController.text)
-          .get();
-
-      if (querySnapshot.docs.isEmpty) {
-        _showErrorDialog('Username tidak ditemukan');
-        _showFailureAnimation();
-        return;
-      }
-
-      var userData = querySnapshot.docs[0];
-      if (userData['password'] != _passwordController.text) {
-        _showErrorDialog('Password salah');
-        _showFailureAnimation();
-        return;
-      }
-
-      // Authenticate the user with Firebase Authentication
-      UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(
-              email: userData['email'], password: _passwordController.text);
-
-      // Save login status and user ID
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('isLoggedIn', true);
-      await prefs.setString('userId', userCredential.user!.uid);
-
-      _showSuccessAnimation();
-    } catch (e) {
-      log('Error signing in with username and password: $e');
-      _showErrorDialog('Terjadi kesalahan saat masuk');
-      _showFailureAnimation();
-    }
-  }
-
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          title: const Text('Error'),
-          content: Text(message),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showSuccessAnimation() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          content: Lottie.asset(
-            'assets/animations/success.json',
-            repeat: false,
-            onLoaded: (composition) {
-              Future.delayed(composition.duration, () {
-                Navigator.of(context).pop();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const HomeScreen()),
-                );
-              });
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  void _showFailureAnimation() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          content: Lottie.asset(
-            'assets/animations/failure.json',
-            repeat: false,
-            onLoaded: (composition) {
-              Future.delayed(composition.duration, () {
-                Navigator.of(context).pop();
-              });
-            },
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final Color backgroundColor = const Color.fromARGB(255, 23, 92, 28);
+
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 23, 92, 28),
+      backgroundColor: backgroundColor,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
@@ -199,9 +190,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 20),
                       TextField(
                         controller: _usernameController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Username',
                           prefixIcon: Icon(Icons.person),
+                          hintText: 'Masukkan username Anda',
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: backgroundColor),
+                          ),
+                          labelStyle: TextStyle(color: backgroundColor),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -210,6 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: InputDecoration(
                           labelText: 'Password',
                           prefixIcon: const Icon(Icons.lock),
+                          hintText: 'Masukkan password Anda',
                           suffixIcon: IconButton(
                             icon: Icon(
                               _passwordVisible
@@ -222,6 +219,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               });
                             },
                           ),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: backgroundColor),
+                          ),
+                          labelStyle: TextStyle(color: backgroundColor),
                         ),
                         obscureText: !_passwordVisible,
                       ),
@@ -230,9 +231,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () {
-                            // Add forgot password logic here
+                            _sendPasswordResetEmail(_usernameController.text);
                           },
-                          child: const Text('Lupa Password?'),
+                          child: const Text(
+                            'Lupa Password?',
+                            style: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -243,18 +247,20 @@ class _LoginScreenState extends State<LoginScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => RegisterScreen()), // Navigasi ke RegisterScreen
+                                  builder: (context) => RegisterScreen()),
                             );
                           },
-                          child: const Text('Belum punya akun ? Daftar'),
+                          child: const Text(
+                            'Belum punya akun ? Daftar',
+                            style: TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
                       ElevatedButton(
                         onPressed: _signInWithUsernamePassword,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color.fromARGB(255, 23, 92, 28),
+                          backgroundColor: backgroundColor,
                           minimumSize: const Size(double.infinity, 50),
                         ),
                         child: const Text(

@@ -1,22 +1,23 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:jogfarmv1/model/products.dart';
+import 'package:flutter/material.dart';
 import 'package:jogfarmv1/screens/product/detailproduct_screen.dart';
 
 class CategoryProductsScreen extends StatelessWidget {
   final String category;
   final int categoryId;
 
-  CategoryProductsScreen({required this.category, required this.categoryId});
+  const CategoryProductsScreen({
+    Key? key,
+    required this.category,
+    required this.categoryId,
+  }) : super(key: key);
 
-  Stream<List<Product>> getProductsByCategory() {
-    return FirebaseFirestore.instance
-        .collection('products')
-        .where('category_id', isEqualTo: categoryId)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => Product.fromMap(doc.data() as Map<String, dynamic>))
-            .toList());
+  Future<String> _fetchSellerAddress(String sellerId) async {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(sellerId)
+        .get();
+    return userDoc['address'] ?? '';
   }
 
   @override
@@ -24,26 +25,23 @@ class CategoryProductsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Produk $category'),
-        backgroundColor: const Color(0xFF2D4739),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
       ),
-      body: StreamBuilder<List<Product>>(
-        stream: getProductsByCategory(),
+      body: FutureBuilder<QuerySnapshot>(
+        future: FirebaseFirestore.instance
+            .collection('products')
+            .where('type_id', isEqualTo: categoryId)
+            .get(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Tidak ada produk yang ditemukan'));
+          if (snapshot.hasError) {
+            return const Center(child: Text('Error loading products'));
           }
-          final products = snapshot.data!;
+
+          final products = snapshot.data!.docs;
+
           return GridView.builder(
-            padding: const EdgeInsets.all(8.0),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               mainAxisSpacing: 8,
@@ -53,7 +51,44 @@ class CategoryProductsScreen extends StatelessWidget {
             itemCount: products.length,
             itemBuilder: (context, index) {
               final product = products[index];
-              return _buildProductCard(context, product);
+              return FutureBuilder<String>(
+                future: _fetchSellerAddress(product['user_id']),
+                builder: (context, addressSnapshot) {
+                  if (addressSnapshot.connectionState ==
+                      ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (addressSnapshot.hasError) {
+                    return const Center(child: Text('Error loading address'));
+                  }
+
+                  final sellerAddress = addressSnapshot.data ?? '';
+
+                  return _buildProductCard(
+                    context,
+                    product.id,
+                    product['images'][0],
+                    product['price'].toString(),
+                    product['name'],
+                    product['description'],
+                    product['location'],
+                    product['latitude'],
+                    product['longitude'],
+                    product['category_id'],
+                    product['type_id'],
+                    product['is_active'],
+                    DateTime.parse(product['created_at']),
+                    product['unit_id'],
+                    List<String>.from(product['images']),
+                    product['weight'],
+                    product['age'],
+                    product['stock'],
+                    product['user_name'],
+                    sellerAddress,
+                    product['user_id'],
+                  );
+                },
+              );
             },
           );
         },
@@ -61,35 +96,55 @@ class CategoryProductsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProductCard(BuildContext context, Product product) {
+  Widget _buildProductCard(
+    BuildContext context,
+    String productId,
+    String imageUrl,
+    String price,
+    String name,
+    String description,
+    String location,
+    double latitude,
+    double longitude,
+    int categoryId,
+    int typeId,
+    bool isActive,
+    DateTime createdAt,
+    int unitId,
+    List<String> images,
+    double weight,
+    int age,
+    int stock,
+    String userName,
+    String sellerAddress,
+    String userId,
+  ) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ProductDetailScreen(
-              productId: product.productId,
-              imageUrl: product.images.isNotEmpty
-                  ? product.images[0]
-                  : 'images/default_product.png',
-              price: product.price.toString(),
-              name: product.name,
-              description: product.description,
-              location: product.location,
-              latitude: product.latitude,
-              longitude: product.longitude,
-              categoryId: product.categoryId,
-              typeId: product.typeId,
-              isActive: product.isActive,
-              createdAt: product.createdAt,
-              unitId: product.unitId,
-              images: product.images,
-              weight: product.weight,
-              age: product.age,
-              stock: product.stock,
-              sellerName: product.userName,
-              sellerAddress: "", // This value needs to be fetched or added in the Product model
-              sellerId: product.userId,
+              productId: productId,
+              imageUrl: imageUrl,
+              price: price,
+              name: name,
+              description: description,
+              location: location,
+              latitude: latitude,
+              longitude: longitude,
+              categoryId: categoryId,
+              typeId: typeId,
+              isActive: isActive,
+              createdAt: createdAt,
+              unitId: unitId,
+              images: images,
+              weight: weight,
+              age: age,
+              stock: stock,
+              sellerName: userName,
+              sellerAddress: sellerAddress,
+              sellerId: userId,
             ),
           ),
         );
@@ -104,12 +159,9 @@ class CategoryProductsScreen extends StatelessWidget {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(10)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
                   image: DecorationImage(
-                    image: NetworkImage(product.images.isNotEmpty
-                        ? product.images[0]
-                        : 'images/default_product.png'),
+                    image: NetworkImage(imageUrl),
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -121,13 +173,13 @@ class CategoryProductsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Rp. ${product.price}',
+                    'Rp. $price',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Text(product.name),
-                  Text(product.location),
+                  Text(name),
+                  Text(location),
                 ],
               ),
             ),

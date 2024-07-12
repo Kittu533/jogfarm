@@ -1,15 +1,17 @@
-import 'package:animated_notch_bottom_bar/animated_notch_bottom_bar/animated_notch_bottom_bar.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:jogfarmv1/screens/account/myaccount_screen.dart';
 import 'package:jogfarmv1/screens/cart/cartpage_screen.dart';
 import 'package:jogfarmv1/screens/chat/chatall_screen.dart';
+import 'package:jogfarmv1/screens/chat/chatlist_screen.dart';
 import 'package:jogfarmv1/screens/product/allproduct_screen.dart';
+import 'package:jogfarmv1/screens/product/category_product_screen.dart';
 import 'package:jogfarmv1/screens/product/myproduct_screen.dart';
 import 'package:jogfarmv1/screens/product/detailproduct_screen.dart';
 import 'package:jogfarmv1/screens/product/uploadproduct_screen.dart';
-import 'package:jogfarmv1/screens/setting_screen.dart';
 import 'package:jogfarmv1/screens/auth/login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -33,24 +35,19 @@ class _HomeScreenState extends State<HomeScreen> {
     _checkLoginStatus();
   }
 
-  final NotchBottomBarController _controller =
-      NotchBottomBarController(index: 0);
-
   Future<void> _checkLoginStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-    // bool isSeller = prefs.getBool('isSeller') ?? false;
 
     setState(() {
       _isLoggedIn = isLoggedIn;
-      // _isSeller = isSeller;
 
       _widgetOptions = [
         HomePage(),
-        const ChatAllScreen(),
+        ChatListScreen(),
         UploadProductScreen(),
         const MyProductScreen(),
-        const SettingsScreen(),
+        const AkunSayaScreen(),
       ];
 
       if (!isLoggedIn) {
@@ -144,61 +141,129 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
           ],
         ),
-        bottomNavigationBar: AnimatedNotchBottomBar(
-          notchBottomBarController: _controller,
-          color: const Color(0xFF2D4739),
-          showLabel: true,
-          textOverflow: TextOverflow.ellipsis,
-          maxLine: 1,
-          shadowElevation: 2,
-          kBottomRadius: 0, // Menghapus radius
-          notchColor: const Color(0xFF2D4739),
-          removeMargins: true, // Menghapus margin untuk mengisi penuh
-          bottomBarWidth:
-              MediaQuery.of(context).size.width, // Memastikan lebarnya penuh
-          showShadow: false,
-          durationInMilliSeconds: 300,
-          itemLabelStyle: const TextStyle(fontSize: 12, color: Colors.white),
-          elevation: 1,
-          bottomBarItems: const [
-            BottomBarItem(
-              inActiveItem: Icon(Icons.home_filled,
-                  color: Color.fromARGB(255, 255, 255, 255)),
-              activeItem: Icon(Icons.home_filled,
-                  color: Color.fromARGB(255, 255, 255, 255)),
-              itemLabel: 'Home',
-            ),
-            BottomBarItem(
-              inActiveItem: Icon(Icons.chat_bubble,
-                  color: Color.fromARGB(255, 255, 255, 255)),
-              activeItem: Icon(Icons.chat_bubble,
-                  color: Color.fromARGB(255, 255, 255, 255)),
-              itemLabel: 'Chat',
-            ),
-            BottomBarItem(
-              inActiveItem: Icon(Icons.add_circle_outline,
-                  color: Color.fromARGB(255, 255, 255, 255)),
-              activeItem: Icon(Icons.add_circle_outline,
-                  color: Color.fromARGB(255, 255, 255, 255)),
-              itemLabel: 'Tambah',
-            ),
-            BottomBarItem(
-              inActiveItem: Icon(Icons.inventory,
-                  color: Color.fromARGB(255, 255, 255, 255)),
-              activeItem: Icon(Icons.inventory,
-                  color: Color.fromARGB(255, 255, 255, 255)),
-              itemLabel: 'Produk',
-            ),
-            BottomBarItem(
-              inActiveItem: Icon(Icons.settings,
-                  color: Color.fromARGB(255, 255, 255, 255)),
-              activeItem: Icon(Icons.settings,
-                  color: Color.fromARGB(255, 255, 255, 255)),
-              itemLabel: 'Pengaturan',
-            ),
-          ],
-          onTap: _onItemTapped,
-          kIconSize: 24.0,
+        bottomNavigationBar: BottomNavBarFb1(
+          selectedIndex: _selectedIndex,
+          onItemTapped: _onItemTapped,
+        ),
+      ),
+    );
+  }
+}
+
+class BottomNavBarFb1 extends StatelessWidget {
+  const BottomNavBarFb1({
+    Key? key,
+    required this.selectedIndex,
+    required this.onItemTapped,
+  }) : super(key: key);
+
+  final int selectedIndex;
+  final Function(int) onItemTapped;
+
+  final primaryColor = const Color(0xFF2D4739); // Sesuaikan dengan warna AppBar
+
+  @override
+  Widget build(BuildContext context) {
+    return BottomAppBar(
+      color: Colors.white,
+      child: SizedBox(
+        height: 56,
+        width: MediaQuery.of(context).size.width,
+        child: Padding(
+          padding:
+              const EdgeInsets.only(left: 10.0, right: 10.0), // Kurangi padding
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconBottomBar(
+                icon: Icons.home,
+                selected: selectedIndex == 0,
+                onPressed: () => onItemTapped(0),
+                primaryColor: primaryColor,
+              ),
+              IconBottomBar(
+                icon: Icons.chat,
+                selected: selectedIndex == 1,
+                onPressed: () => onItemTapped(1),
+                primaryColor: primaryColor,
+              ),
+              IconBottomBar2(
+                icon: Icons.add_circle_outline,
+                selected: selectedIndex == 2,
+                onPressed: () => onItemTapped(2),
+                primaryColor: primaryColor,
+              ),
+              IconBottomBar(
+                icon: Icons.inventory,
+                selected: selectedIndex == 3,
+                onPressed: () => onItemTapped(3),
+                primaryColor: primaryColor,
+              ),
+              IconBottomBar(
+                icon: Icons.settings,
+                selected: selectedIndex == 4,
+                onPressed: () => onItemTapped(4),
+                primaryColor: primaryColor,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class IconBottomBar extends StatelessWidget {
+  const IconBottomBar({
+    Key? key,
+    required this.icon,
+    required this.selected,
+    required this.onPressed,
+    required this.primaryColor,
+  }) : super(key: key);
+
+  final IconData icon;
+  final bool selected;
+  final Function() onPressed;
+  final Color primaryColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      icon: Icon(
+        icon,
+        size: 25,
+        color: selected ? primaryColor : Colors.black54,
+      ),
+    );
+  }
+}
+
+class IconBottomBar2 extends StatelessWidget {
+  const IconBottomBar2({
+    Key? key,
+    required this.icon,
+    required this.selected,
+    required this.onPressed,
+    required this.primaryColor,
+  }) : super(key: key);
+
+  final IconData icon;
+  final bool selected;
+  final Function() onPressed;
+  final Color primaryColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return CircleAvatar(
+      backgroundColor: primaryColor,
+      child: IconButton(
+        onPressed: onPressed,
+        icon: Icon(
+          icon,
+          size: 25,
+          color: Colors.white,
         ),
       ),
     );
@@ -211,6 +276,49 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  Map<String, int> _categoryIds = {
+    'Sapi': 8,
+    'Kambing': 9,
+    'Ayam': 1,
+    'Ikan': 3,
+    'Bebek': 2,
+    'Pakan': 25,
+    'Kandang': 26,
+    'Lainnya': 27,
+  };
+
+  Map<String, int> _typeIds = {
+    'Ayam': 1,
+    'Bebek': 2,
+    'Angsa': 3,
+    'Puyuh': 4,
+    'Kalkun': 5,
+    'Merpati': 6,
+    'Lainnya': 7,
+    'Sapi': 8,
+    'Kambing': 9,
+    'Domba': 10,
+    'Kelinci': 11,
+    'Babi': 12,
+    'Kerbau': 13,
+    'Kuda': 14,
+    'Lainnya': 15,
+    'Ikan Lele': 16,
+    'Ikan Nila': 17,
+    'Ikan Gurame': 18,
+    'Ikan Patin': 19,
+    'Ikan Mas': 20,
+    'Ikan Bawal': 21,
+    'Udang': 22,
+    'Lobster': 23,
+    'Lainnya': 24,
+    'Pakan Ternak': 25,
+    'Kandang': 26,
+    'Alat Peternakan': 27,
+    'Vitamin dan Obat-obatan': 28,
+    'Lainnya': 29,
+  };
+
   Future<String> _fetchSellerAddress(String sellerId) async {
     DocumentSnapshot userDoc = await FirebaseFirestore.instance
         .collection('users')
@@ -237,46 +345,113 @@ class _HomePageState extends State<HomePage> {
           backgroundColor: const Color(0xFF2D4739),
           flexibleSpace: Padding(
             padding: const EdgeInsets.only(top: 40.0, left: 16.0, right: 16.0),
-            child: Row(
+            child: Column(
               children: [
-                const CircleAvatar(
-                  backgroundImage: AssetImage(
-                      'images/user_profil.png'), // Ubah jalur sesuai dengan gambar profil Anda
-                  radius: 24.0,
-                ),
-                const SizedBox(width: 16),
-                Flexible(
-                  child: SizedBox(
-                    height: 50.0, // Ubah tinggi sesuai kebutuhan Anda
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Pencarian',
-                        prefixIcon: const Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
+                Row(
+                  children: [
+                    StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(FirebaseAuth.instance.currentUser?.uid)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const CircleAvatar(
+                            backgroundImage:
+                                AssetImage('images/user_profil.png'),
+                            radius: 24.0,
+                          );
+                        } else if (snapshot.hasError ||
+                            !snapshot.hasData ||
+                            snapshot.data == null) {
+                          return const CircleAvatar(
+                            backgroundImage:
+                                AssetImage('images/user_profil.png'),
+                            radius: 24.0,
+                          );
+                        } else {
+                          var userData =
+                              snapshot.data?.data() as Map<String, dynamic>?;
+                          return CircleAvatar(
+                            backgroundImage: NetworkImage(
+                                userData?['profile_picture'] ??
+                                    'images/user_profil.png'),
+                            radius: 24.0,
+                          );
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 16),
+                    Flexible(
+                      child: SizedBox(
+                        height: 50.0,
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Pencarian',
+                            prefixIcon: const Icon(Icons.search),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 14.0),
+                          ),
                         ),
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: EdgeInsets.symmetric(vertical: 14.0),
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      icon:
+                          const Icon(Icons.shopping_cart, color: Colors.white),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => MyCartScreen()),
+                        );
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.notifications, color: Colors.white),
+                      onPressed: () {},
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                IconButton(
-                  icon: const Icon(Icons.shopping_cart,
-                      color: Colors.white), // Ikon keranjang belanja
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => MyCartScreen()),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.notifications, color: Colors.white),
-                  onPressed: () {},
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on,
+                        color: Color.fromARGB(255, 252, 93, 0)),
+                    StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(FirebaseAuth.instance.currentUser?.uid)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Text('Memuat lokasi...');
+                        } else if (snapshot.hasError ||
+                            !snapshot.hasData ||
+                            snapshot.data == null) {
+                          return const Text('Lokasi tidak tersedia');
+                        } else {
+                          var userData =
+                              snapshot.data?.data() as Map<String, dynamic>?;
+                          return Flexible(
+                            child: Text(
+                              userData?['address'] ?? 'Lokasi tidak tersedia',
+                              overflow: TextOverflow.visible,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -297,25 +472,27 @@ class _HomePageState extends State<HomePage> {
                 mainAxisSpacing: 2.0,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                children: const [
-                  _CategoryIcon(
-                      iconData: FontAwesomeIcons.locationDot,
-                      label: 'Terdekat'),
-                  _CategoryIcon(
-                      iconData: FontAwesomeIcons.tag, label: 'Big Deals'),
-                  _CategoryIcon(
-                      iconData: FontAwesomeIcons.heart, label: 'Populer'),
-                  _CategoryIcon(
-                      iconData: FontAwesomeIcons.dove, label: 'Unggas'),
-                  _CategoryIcon(
-                      iconData: FontAwesomeIcons.dog, label: 'Mamalia'),
-                  _CategoryIcon(
-                      iconData: FontAwesomeIcons.leaf, label: 'Pakan'),
-                  _CategoryIcon(
-                      iconData: FontAwesomeIcons.home, label: 'Kandang'),
-                  _CategoryIcon(
-                      iconData: FontAwesomeIcons.ellipsisH, label: 'Lainnya'),
-                ],
+                children: _categoryIds.keys.map((String category) {
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CategoryProductsScreen(
+                            category: category,
+                            categoryId: category == 'Ikan'
+                                ? _categoryIds[category]!
+                                : _typeIds[category]!,
+                          ),
+                        ),
+                      );
+                    },
+                    child: _CategoryIcon(
+                      iconData: _getCategoryIcon(category),
+                      label: category,
+                    ),
+                  );
+                }).toList(),
               ),
               Padding(
                 padding: const EdgeInsets.all(8.0),
@@ -323,7 +500,7 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Tersedia Space Iklan !!',
+                      'Tersedia Space Iklan yow    !!',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -424,8 +601,7 @@ class _HomePageState extends State<HomePage> {
                                 child: Text('Error loading address'));
                           }
 
-                          final sellerAddress =
-                              addressSnapshot.data ?? '';
+                          final sellerAddress = addressSnapshot.data ?? '';
 
                           return _buildProductCard(
                             context,
@@ -463,6 +639,29 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  IconData _getCategoryIcon(String category) {
+    switch (category) {
+      case 'Sapi':
+        return FontAwesomeIcons.cow;
+      case 'Kambing':
+        return FontAwesomeIcons.hippo;
+      case 'Ayam':
+        return FontAwesomeIcons.dove;
+      case 'Ikan':
+        return FontAwesomeIcons.fish;
+      case 'Bebek':
+        return FontAwesomeIcons.baby;
+      case 'Pakan':
+        return FontAwesomeIcons.seedling;
+      case 'Kandang':
+        return FontAwesomeIcons.warehouse;
+      case 'Lainnya':
+        return FontAwesomeIcons.ellipsisH;
+      default:
+        return FontAwesomeIcons.questionCircle;
+    }
+  }
+
   Widget _buildProductCard(
     BuildContext context,
     String productId, // Add this parameter
@@ -480,12 +679,14 @@ class _HomePageState extends State<HomePage> {
     int unitId,
     List<String> images,
     double weight, // Add this parameter
-    int age, // Add this parameter
-    int stock, // Add this parameter
+    int age,
+    int stock,
     String userName, // Change this parameter
     String sellerAddress, // Add this parameter
     String userId, // Add this parameter for fetching other products
   ) {
+    String unit = unitId == 1 ? "Kg" : "Ekor"; // Convert unitId to string
+
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -541,7 +742,7 @@ class _HomePageState extends State<HomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Rp. $price',
+                    'Rp. $price/$unit',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                     ),

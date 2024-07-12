@@ -16,6 +16,7 @@ class Product {
   final bool isActive;
   final DateTime createdAt;
   final int unitId;
+  final String? unit;
   final List<String> images;
 
   Product({
@@ -36,6 +37,7 @@ class Product {
     required this.isActive,
     required this.createdAt,
     required this.unitId,
+    required this.unit,
     required this.images,
   });
 
@@ -58,6 +60,7 @@ class Product {
       'is_active': isActive,
       'created_at': createdAt.toIso8601String(),
       'unit_id': unitId,
+      'unit': unit,
       'images': images,
     };
   }
@@ -81,6 +84,7 @@ class Product {
       isActive: map['is_active'],
       createdAt: DateTime.parse(map['created_at']),
       unitId: map['unit_id'],
+      unit: map['unit'],
       images: List<String>.from(map['images']),
     );
   }

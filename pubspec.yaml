@@ -30,10 +30,12 @@ dependencies:
   image: ^4.0.15
   camera: ^0.10.0+1
   path_provider: ^2.0.11
+  provider: ^5.0.0
   path: ^1.8.0
   uuid: ^3.0.1
   google_maps_flutter: ^2.1.5
   geolocator: ^8.2.1
+  geocoding: ^2.0.4
   lottie: ^3.1.2
   font_awesome_flutter: ^10.7.0
   carousel_slider: ^4.2.1
@@ -42,6 +44,14 @@ dependencies:
   infinite_scroll_pagination: ^4.0.0
   smooth_page_indicator: ^1.1.0
   syncfusion_flutter_datepicker: ^26.1.40
+  permission_handler: ^10.0.0
+  flutter_chat_ui: ^1.6.14
+  flutter_chat_types: ^3.0.4
+  motion_toast: ^2.10.0
+  flutter_local_notifications: ^17.2.1+1
+  file_picker: ^8.0.6
+  firebase_messaging: ^14.9.4
+  intl: ^0.19.0
 
 
 dev_dependencies:
@@ -58,7 +68,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
-  image_path: "images/icon.png"
+  image_path: "images/logojogfarm.png"
   min_sdk_android: 21
   remove_alpha_ios: true
 

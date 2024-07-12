@@ -6,9 +6,10 @@ class Cart {
   final String sellerName;
   final String productName;
   final String imageProduct;
-  int quantity;  // Remove final keyword
+  int quantity;
   final DateTime addedAt;
   final String productId;
+  final String sellerId;  // Tambahkan sellerId
 
   Cart({
     required this.cartId,
@@ -21,6 +22,7 @@ class Cart {
     required this.quantity,
     required this.addedAt,
     required this.productId,
+    required this.sellerId,  // Tambahkan sellerId
   });
 
   Map<String, dynamic> toMap() {
@@ -35,6 +37,7 @@ class Cart {
       'quantity': quantity,
       'added_at': addedAt.toIso8601String(),
       'product_id': productId,
+      'seller_id': sellerId,  // Tambahkan sellerId
     };
   }
 
@@ -50,6 +53,7 @@ class Cart {
       quantity: map['quantity'],
       addedAt: DateTime.parse(map['added_at']),
       productId: map['product_id'],
+      sellerId: map['seller_id'],  // Tambahkan sellerId
     );
   }
 }

@@ -26,7 +26,15 @@ if (flutterVersionName == null) {
 }
 
 android {
-    namespace "com.example.jogfarmv1"
+    signingConfigs {
+        release {
+            keyAlias 'jogfarm'
+            keyPassword 'jogfarm'
+            storeFile file('D:/Belajar/jogfarm.jks')
+            storePassword 'jogfarm'
+        }
+    }
+    namespace "com.jogfarm.jogfarmv1"
     compileSdk flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
@@ -48,17 +56,22 @@ android {
         applicationId "com.example.jogfarmv1"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdkVersion 21 
+        minSdkVersion 21
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+
+        ndk {
+            abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+        }
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            shrinkResources false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
@@ -67,4 +80,6 @@ flutter {
     source '../..'
 }
 
-dependencies {}
+dependencies {
+    implementation 'com.android.support:multidex:1.0.3'
+}

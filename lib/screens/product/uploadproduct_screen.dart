@@ -103,7 +103,6 @@ class _UploadProductScreenState extends State<UploadProductScreen> {
 
   Future<void> _checkKtpStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    // Retrieve user ID from SharedPreferences or your authentication system
     String? userId = prefs.getString('userId');
     if (userId != null) {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();

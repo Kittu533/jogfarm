@@ -14,9 +14,20 @@ class DatabaseService {
     }
   }
 
+  Future<void> updatePassword(String uid, String newPassword) async {
+    try {
+      await _firestore.collection('users').doc(uid).update({
+        'password': newPassword,
+      });
+    } catch (e) {
+      print("Error updating password in Firestore: $e");
+    }
+  }
+
   Future<UserModel?> getUser(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+      DocumentSnapshot doc =
+          await _firestore.collection('users').doc(uid).get();
       if (doc.exists) {
         return UserModel.fromMap(doc.data() as Map<String, dynamic>);
       }
@@ -38,11 +49,15 @@ class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Future<void> addProduct(Product product) async {
-    await _db.collection('products').doc(product.productId).set(product.toMap());
+    await _db
+        .collection('products')
+        .doc(product.productId)
+        .set(product.toMap());
   }
 
   Future<Product?> getProduct(String productId) async {
-    DocumentSnapshot doc = await _db.collection('products').doc(productId).get();
+    DocumentSnapshot doc =
+        await _db.collection('products').doc(productId).get();
     if (doc.exists) {
       return Product.fromMap(doc.data() as Map<String, dynamic>);
     }
@@ -50,7 +65,10 @@ class DatabaseService {
   }
 
   Future<void> updateProduct(Product product) async {
-    await _db.collection('products').doc(product.productId).update(product.toMap());
+    await _db
+        .collection('products')
+        .doc(product.productId)
+        .update(product.toMap());
   }
 
   Future<void> deleteProduct(String productId) async {

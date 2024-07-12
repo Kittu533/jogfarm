@@ -1,37 +1,35 @@
 class Message {
-  final int messageId;
-  final int senderId;
-  final int receiverId;
-  final String content;
+  final String senderId;
+  final String receiverId;
+  final String text;
   final DateTime timestamp;
+  final String? fileUrl;
 
   Message({
-    required this.messageId,
     required this.senderId,
     required this.receiverId,
-    required this.content,
+    required this.text,
     required this.timestamp,
+    this.fileUrl,
   });
 
-  // Method to convert Message object to a map
   Map<String, dynamic> toMap() {
     return {
-      'message_id': messageId,
-      'sender_id': senderId,
-      'receiver_id': receiverId,
-      'content': content,
+      'senderId': senderId,
+      'receiverId': receiverId,
+      'text': text,
       'timestamp': timestamp.toIso8601String(),
+      'fileUrl': fileUrl,
     };
   }
 
-  // Factory method to create a Message object from a map
   factory Message.fromMap(Map<String, dynamic> map) {
     return Message(
-      messageId: map['message_id'],
-      senderId: map['sender_id'],
-      receiverId: map['receiver_id'],
-      content: map['content'],
+      senderId: map['senderId'],
+      receiverId: map['receiverId'],
+      text: map['text'],
       timestamp: DateTime.parse(map['timestamp']),
+      fileUrl: map['fileUrl'],
     );
   }
 }

@@ -4,6 +4,8 @@ import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:jogfarmv1/model/cart.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:jogfarmv1/screens/chat/chat_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -96,24 +98,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         quantity: 1,
         addedAt: DateTime.now(),
         productId: widget.productId,
+        sellerId: widget.sellerId, // Tambahkan sellerId
       );
 
-      FirebaseFirestore.instance
-          .collection('cart')
-          .doc(cartItem.cartId)
-          .set(cartItem.toMap())
-          .then((value) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('cart')
+            .doc(cartItem.cartId)
+            .set(cartItem.toMap());
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Produk ditambahkan ke keranjang')),
         );
         _showAddToCartAnimation(context);
-      }).catchError((error) {
+      } catch (error) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Gagal menambahkan ke keranjang')),
         );
-      });
+      }
     } else {
-      openWarningSnackBar(context, 'Anda tidak bisa menambahkan produk Anda sendiri ke keranjang');
+      openWarningSnackBar(context,
+          'Anda tidak bisa menambahkan produk Anda sendiri ke keranjang');
     }
   }
 
@@ -150,7 +154,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   Future<List<QueryDocumentSnapshot>> _fetchOtherProducts() async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection('products')
-        .where('seller_id', isEqualTo: widget.sellerId)
+        .where('user_id', isEqualTo: widget.sellerId)
         .limit(6)
         .get();
     return querySnapshot.docs;
@@ -159,22 +163,51 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   Future<List<QueryDocumentSnapshot>> _fetchRecommendations() async {
     QuerySnapshot querySnapshot = await FirebaseFirestore.instance
         .collection('products')
-        .where('seller_id', isNotEqualTo: widget.sellerId)
+        .where('user_id', isNotEqualTo: widget.sellerId)
         .limit(6)
         .get();
     return querySnapshot.docs;
+  }
+
+  String _generateChatId(String userId, String sellerId) {
+    if (userId.hashCode <= sellerId.hashCode) {
+      return '$userId-$sellerId';
+    } else {
+      return '$sellerId-$userId';
+    }
+  }
+
+  void startChat() async {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      String chatId = _generateChatId(currentUser.uid, widget.sellerId);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChatScreen(
+            receiverId: widget.sellerId,
+            chatId: chatId,
+          ),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Detail produk',
+        title: const Text(
+          'Detail Produk',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         backgroundColor: const Color(0xFF2D4739),
-        automaticallyImplyLeading: false,
+        iconTheme: IconThemeData(
+          color: Colors.white, // Mengubah warna ikon panah menjadi putih
+        ),
+        actionsIconTheme: IconThemeData(
+          color: Colors.white, // Mengubah warna ikon tindakan menjadi putih
+        ),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -311,6 +344,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                         ),
                       ),
                       SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: startChat,
+                          icon: Icon(Icons.chat, color: Colors.blue),
+                          label: Text(
+                            'Chat',
+                            style: TextStyle(color: Colors.blue),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: Colors.blue),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -326,128 +376,175 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     radius: 24.0,
                   ),
                   SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.sellerName,
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      Text(widget.sellerAddress),
-                    ],
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.sellerName,
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        Text(widget.sellerAddress),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'Lainnya ditoko ini',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: 8),
-                  FutureBuilder<List<QueryDocumentSnapshot>>(
-                    future: _fetchOtherProducts(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      }
-                      if (snapshot.hasError) {
-                        return Center(child: Text('Error loading products'));
-                      }
-                      final otherProducts = snapshot.data!;
-                      return SizedBox(
-                        height: 200,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: otherProducts.length,
-                          itemBuilder: (context, index) {
-                            final product = otherProducts[index];
-                            return Container(
-                              width: 150,
-                              margin: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Image.network(
-                                    product['images'][0],
-                                    height: 100,
-                                    width: 150,
-                                    fit: BoxFit.cover,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    product['name'],
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  Text('Rp. ${product['price']} /ekor'),
-                                  Text(product['location']),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      );
+                  GestureDetector(
+                    onTap: () {
+                      // Handle 'Lihat semua' tap
                     },
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'Rekomendasi Lain',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 8),
-                  FutureBuilder<List<QueryDocumentSnapshot>>(
-                    future: _fetchRecommendations(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      }
-                      if (snapshot.hasError) {
-                        return Center(child: Text('Error loading products'));
-                      }
-                      final recommendations = snapshot.data!;
-                      return SizedBox(
-                        height: 200,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: recommendations.length,
-                          itemBuilder: (context, index) {
-                            final product = recommendations[index];
-                            return Container(
-                              width: 150,
-                              margin: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Image.network(
-                                    product['images'][0],
-                                    height: 100,
-                                    width: 150,
-                                    fit: BoxFit.cover,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    product['name'],
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  Text('Rp. ${product['price']} /ekor'),
-                                  Text(product['location']),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    },
+                    child: Text(
+                      'Lihat semua',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
                   ),
                 ],
               ),
+            ),
+            FutureBuilder<List<QueryDocumentSnapshot>>(
+              future: _fetchOtherProducts(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error loading products'));
+                }
+                final otherProducts = snapshot.data!;
+                return Container(
+                  height:
+                      250, // Atur tinggi container agar dapat discroll horizontal
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: otherProducts.length,
+                    itemBuilder: (context, index) {
+                      final product = otherProducts[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProductDetailScreen(
+                                productId: product['product_id'],
+                                imageUrl: product['images'][0],
+                                price: product['price'].toString(),
+                                name: product['name'],
+                                description: product['description'],
+                                location: product['location'],
+                                latitude: product['latitude'],
+                                longitude: product['longitude'],
+                                categoryId: product['category_id'],
+                                sellerName: product['user_name'],
+                                sellerAddress: widget.sellerAddress,
+                                typeId: product['type_id'],
+                                isActive: product['is_active'],
+                                createdAt:
+                                    DateTime.parse(product['created_at']),
+                                unitId: product['unit_id'],
+                                images: List<String>.from(product['images']),
+                                weight: product['weight'],
+                                age: product['age'],
+                                stock: product['stock'],
+                                sellerId: product['user_id'],
+                              ),
+                            ),
+                          );
+                        },
+                        child: _buildProductCard(
+                          product['images'][0],
+                          product['name'],
+                          product['price'].toString(),
+                          product['location'],
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Rekomendasi Lain',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            FutureBuilder<List<QueryDocumentSnapshot>>(
+              future: _fetchRecommendations(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error loading products'));
+                }
+                final recommendations = snapshot.data!;
+                return Container(
+                  height:
+                      250, // Atur tinggi container agar dapat discroll horizontal
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: recommendations.length,
+                    itemBuilder: (context, index) {
+                      final product = recommendations[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProductDetailScreen(
+                                productId: product['product_id'],
+                                imageUrl: product['images'][0],
+                                price: product['price'].toString(),
+                                name: product['name'],
+                                description: product['description'],
+                                location: product['location'],
+                                latitude: product['latitude'],
+                                longitude: product['longitude'],
+                                categoryId: product['category_id'],
+                                sellerName: product['user_name'],
+                                sellerAddress: widget.sellerAddress,
+                                typeId: product['type_id'],
+                                isActive: product['is_active'],
+                                createdAt:
+                                    DateTime.parse(product['created_at']),
+                                unitId: product['unit_id'],
+                                images: List<String>.from(product['images']),
+                                weight: product['weight'],
+                                age: product['age'],
+                                stock: product['stock'],
+                                sellerId: product['user_id'],
+                              ),
+                            ),
+                          );
+                        },
+                        child: _buildProductCard(
+                          product['images'][0],
+                          product['name'],
+                          product['price'].toString(),
+                          product['location'],
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -490,14 +587,59 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         children: [
           Icon(Icons.warning, color: Colors.black),
           SizedBox(width: 5),
-          Text(
-            text,
-            style: TextStyle(fontSize: 16, color: Colors.black),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 16, color: Colors.black),
+            ),
           ),
         ],
       ),
       duration: Duration(milliseconds: 12500),
     ));
+  }
+
+  Widget _buildProductCard(
+      String imageUrl, String name, String price, String location) {
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Container(
+              width: 150, // Atur lebar card agar lebih kecil
+              decoration: BoxDecoration(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(10)),
+                image: DecorationImage(
+                  image: NetworkImage(imageUrl),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Rp. $price',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(name),
+                Text(location),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

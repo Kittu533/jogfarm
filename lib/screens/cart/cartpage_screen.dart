@@ -25,19 +25,23 @@ class _MyCartScreenState extends State<MyCartScreen> {
     final String? userId = prefs.getString('userId');
 
     if (userId != null) {
-      FirebaseFirestore.instance
-          .collection('cart')
-          .where('user_id', isEqualTo: userId)
-          .get()
-          .then((QuerySnapshot querySnapshot) {
-        List<Cart> fetchedItems = querySnapshot.docs.map((doc) {
-          return Cart.fromMap(doc.data() as Map<String, dynamic>);
-        }).toList();
+      try {
+        FirebaseFirestore.instance
+            .collection('cart')
+            .where('user_id', isEqualTo: userId)
+            .get()
+            .then((QuerySnapshot querySnapshot) {
+          List<Cart> fetchedItems = querySnapshot.docs.map((doc) {
+            return Cart.fromMap(doc.data() as Map<String, dynamic>);
+          }).toList();
 
-        setState(() {
-          _cartItems = fetchedItems;
+          setState(() {
+            _cartItems = fetchedItems;
+          });
         });
-      });
+      } catch (error) {
+        print('Error fetching cart items: $error');
+      }
     }
   }
 
@@ -116,16 +120,19 @@ class _MyCartScreenState extends State<MyCartScreen> {
                                 children: [
                                   IconButton(
                                     icon: Icon(Icons.remove),
-                                    onPressed: () => _decrementQuantity(cartItem),
+                                    onPressed: () =>
+                                        _decrementQuantity(cartItem),
                                   ),
                                   Text('${cartItem.quantity}'),
                                   IconButton(
                                     icon: Icon(Icons.add),
-                                    onPressed: () => _incrementQuantity(cartItem),
+                                    onPressed: () =>
+                                        _incrementQuantity(cartItem),
                                   ),
                                   IconButton(
                                     icon: Icon(Icons.delete),
-                                    onPressed: () => _showDeleteConfirmation(cartItem),
+                                    onPressed: () =>
+                                        _showDeleteConfirmation(cartItem),
                                   ),
                                   Checkbox(
                                     value: _selectedItems.contains(cartItem),
@@ -163,13 +170,14 @@ class _MyCartScreenState extends State<MyCartScreen> {
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: ElevatedButton(
-                    onPressed: _selectedItems.isNotEmpty ? _navigateToCheckout : null,
+                    onPressed:
+                        _selectedItems.isNotEmpty ? _navigateToCheckout : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2D4739),
                       minimumSize: const Size(double.infinity, 50),
                     ),
                     child: const Text('Checkout',
-                        style: TextStyle(color: Colors.white , fontSize: 18)),
+                        style: TextStyle(color: Colors.white, fontSize: 18)),
                   ),
                 ),
               ],

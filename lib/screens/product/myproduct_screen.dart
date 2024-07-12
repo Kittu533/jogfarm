@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:jogfarmv1/model/order.dart';
 import 'package:jogfarmv1/model/products.dart';
 import 'package:jogfarmv1/screens/product/editmyproduct_screen.dart';
 import 'package:lottie/lottie.dart';
@@ -93,6 +94,70 @@ class MyProductScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _updateOrderStatus(
+      BuildContext context, String orderId, String status) async {
+    await FirebaseFirestore.instance
+        .collection('orders')
+        .doc(orderId)
+        .update({'status': status});
+    _showOrderStatusUpdateAnimation(context, status);
+  }
+
+  void _showOrderStatusUpdateAnimation(BuildContext context, String status) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Status Pesanan Diperbarui'),
+          content: SizedBox(
+            width: 200,
+            height: 200,
+            child: Lottie.asset(
+              status == 'accepted'
+                  ? 'assets/animations/success.json'
+                  : status == 'delivered'
+                      ? 'assets/animations/delivered.json'
+                      : 'assets/animations/cancelled.json',
+              repeat: false,
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showOrderCancelledSnackbar(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Pesanan berhasil dibatalkan'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  Stream<List<OrderModel>> getSellerOrders() {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const Stream.empty();
+    }
+    return FirebaseFirestore.instance
+        .collection('orders')
+        .where('sellerId', isEqualTo: user.uid)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map(
+                (doc) => OrderModel.fromMap(doc.data() as Map<String, dynamic>))
+            .toList());
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -107,7 +172,8 @@ class MyProductScreen extends StatelessWidget {
           bottom: const TabBar(
             labelColor: Colors.white,
             indicator: UnderlineTabIndicator(
-              borderSide: BorderSide(width: 4.0, color: Color.fromARGB(255, 0, 255, 13)),
+              borderSide: BorderSide(
+                  width: 4.0, color: Color.fromARGB(255, 0, 255, 13)),
               insets: EdgeInsets.symmetric(horizontal: 50.0),
             ),
             unselectedLabelColor: Colors.grey,
@@ -122,9 +188,9 @@ class MyProductScreen extends StatelessWidget {
         body: TabBarView(
           children: [
             _buildProductsTab(context),
-            _buildOrdersTab('Pesanan', 'accepted'), // Pesanan
-            _buildOrdersTab('Diantar', 'delivered'), // Diantar
-            _buildOrdersTab('Dibatalkan', 'cancelled'), // Dibatalkan
+            _buildOrdersTab(context, 'Aktif'), // Pesanan
+            _buildOrdersTab(context, 'Diantar'), // Diantar
+            _buildOrdersTab(context, 'Dibatalkan'), // Dibatalkan
           ],
         ),
       ),
@@ -184,17 +250,20 @@ class MyProductScreen extends StatelessWidget {
                                   Text(
                                     'Rp${product.price}',
                                     style: const TextStyle(
-                                        fontSize: 16, color: Color.fromARGB(255, 0, 0, 0)),
+                                        fontSize: 16,
+                                        color: Color.fromARGB(255, 0, 0, 0)),
                                   ),
                                   Text(
                                     'Stok :${product.stock.toString()}',
                                     style: const TextStyle(
-                                        fontSize: 16, color: Color.fromARGB(255, 0, 0, 0)),
+                                        fontSize: 16,
+                                        color: Color.fromARGB(255, 0, 0, 0)),
                                   ),
                                   Text(
                                     'Lokasi :${product.location}',
                                     style: const TextStyle(
-                                        fontSize: 16, color: Color.fromARGB(255, 0, 0, 0)),
+                                        fontSize: 16,
+                                        color: Color.fromARGB(255, 0, 0, 0)),
                                   ),
                                 ],
                               ),
@@ -210,8 +279,8 @@ class MyProductScreen extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (context) => EditProductScreen(
-                                          product: product)),
+                                      builder: (context) =>
+                                          EditProductScreen(product: product)),
                                 );
                               },
                               style: ElevatedButton.styleFrom(
@@ -265,102 +334,226 @@ class MyProductScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrdersTab(String status, String orderStatus) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('orders')
-          .where('status', isEqualTo: orderStatus)
-          .snapshots(),
+  Widget _buildOrdersTab(BuildContext context, String orderStatus) {
+    return StreamBuilder<List<OrderModel>>(
+      stream: getSellerOrders().map(
+        (orders) =>
+            orders.where((order) => order.status == orderStatus).toList(),
+      ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
           return const Center(child: Text('Tidak ada pesanan'));
         }
-        final orders = snapshot.data!.docs;
+        final orders = snapshot.data!;
         return ListView.builder(
           itemCount: orders.length,
           itemBuilder: (context, index) {
             final order = orders[index];
-            return Card(
-              margin: const EdgeInsets.symmetric(vertical: 10.0),
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ListTile(
-                      leading: Image.network(
-                        order['imageUrl'],
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                      ),
-                      title: Text(order['buyerName']),
-                      subtitle: Text(order['buyerAddress']),
-                    ),
-                    const SizedBox(height: 10),
-                    Text('Total Pesanan: Rp${order['totalPrice']}'),
-                    Text('Status: ${order['status']}'),
-                    const SizedBox(height: 10),
-                    if (orderStatus == 'accepted') ...[
-                      ElevatedButton(
-                        onPressed: () {
-                          _updateOrderStatus(order.id, 'delivered');
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: const Text('Antar Pesanan'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          _updateOrderStatus(order.id, 'cancelled');
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: const Text('Tolak Pesanan'),
-                      ),
-                    ],
-                    if (orderStatus == 'delivered') ...[
-                      ElevatedButton(
-                        onPressed: () {
-                          _updateOrderStatus(order.id, 'cancelled');
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: const Text('Batalkan'),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            );
+            if (orderStatus == 'Aktif') {
+              return _buildActiveOrderItem(context, order);
+            } else if (orderStatus == 'Diantar') {
+              return _buildDeliveredOrderItem(context, order);
+            } else if (orderStatus == 'Dibatalkan') {
+              return _buildCancelledOrderItem(context, order);
+            }
+            return Container();
           },
         );
       },
     );
   }
 
-  Future<void> _updateOrderStatus(String orderId, String status) async {
-    await FirebaseFirestore.instance
-        .collection('orders')
-        .doc(orderId)
-        .update({'status': status});
+  Widget _buildActiveOrderItem(BuildContext context, OrderModel order) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 10.0),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              leading: Image.network(
+                order.productImage,
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+              ),
+              title: Text(order.buyerId),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Order ID: ${order.orderId}'),
+                  Text('Alamat: ${order.address}'),
+                  Text('Total Pesanan: Rp${order.price}'),
+                  Text('Status: ${order.status}'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    _updateOrderStatus(context, order.orderId, 'Diantar');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text('Antar Pesanan'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    _updateOrderStatus(context, order.orderId, 'Dibatalkan');
+                    _showOrderCancelledSnackbar(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text('Tolak Pesanan'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    _updateOrderStatus(context, order.orderId, 'accepted');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text('Terima Pesanan'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeliveredOrderItem(BuildContext context, OrderModel order) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 10.0),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              leading: Image.network(
+                order.productImage,
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+              ),
+              title: Text(order.buyerId),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Order ID: ${order.orderId}'),
+                  Text('Alamat: ${order.address}'),
+                  Text('Total Pesanan: Rp${order.price}'),
+                  Text('Status: ${order.status}'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Icon(Icons.local_shipping, color: Colors.green),
+                Text(
+                  'Pesanan Diterima',
+                  style: TextStyle(color: Colors.green),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    _updateOrderStatus(context, order.orderId, 'Dibatalkan');
+                    _showOrderCancelledSnackbar(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text('Batalkan'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCancelledOrderItem(BuildContext context, OrderModel order) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 10.0),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              leading: Image.network(
+                order.productImage,
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+              ),
+              title: Text(order.buyerId),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Order ID: ${order.orderId}'),
+                  Text('Alamat: ${order.address}'),
+                  Text('Total Pesanan: Rp${order.price}'),
+                  Text('Status: ${order.status}'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Icon(Icons.cancel, color: Colors.red),
+                Text(
+                  'Pesanan Dibatalkan',
+                  style: TextStyle(color: Colors.red),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    _updateOrderStatus(context, order.orderId, 'accepted');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Text('Terima Pesanan'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -5,10 +5,11 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:jogfarmv1/model/users.dart';
-import 'package:flutter/foundation.dart';
 import 'package:jogfarmv1/services/database_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:syncfusion_flutter_datepicker/datepicker.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:jogfarmv1/screens/maps_screen.dart';
+import 'package:geocoding/geocoding.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -218,11 +219,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  void _onDateSelected(DateRangePickerSelectionChangedArgs args) {
-    if (args.value is DateTime) {
+  Future<void> _selectAddress() async {
+    LatLng? result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => MapScreen()),
+    );
+    if (result != null) {
       setState(() {
-        _dateOfBirthController.text = args.value.toIso8601String();
+        _addressController.text = '${result.latitude}, ${result.longitude}';
       });
+      await _getAddressFromLatLng(result);
+    }
+  }
+
+  Future<void> _getAddressFromLatLng(LatLng position) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      Placemark place = placemarks[0];
+      setState(() {
+        _addressController.text = '${place.street}, ${place.subLocality}, ${place.locality}, ${place.subAdministrativeArea}, ${place.administrativeArea}, ${place.postalCode}, ${place.country}';
+      });
+    } catch (e) {
+      print(e);
     }
   }
 
@@ -308,15 +326,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _addressController,
+                    readOnly: true,
+                    onTap: _selectAddress,
                     decoration: const InputDecoration(
                       labelText: 'Address',
                       prefixIcon: Icon(Icons.location_on),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  SfDateRangePicker(
-                    onSelectionChanged: _onDateSelected,
-                    initialSelectedDate: _currentUser?.dateOfBirth,
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton(

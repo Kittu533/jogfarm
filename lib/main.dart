@@ -21,11 +21,9 @@ class MyApp extends StatelessWidget {
           options: DefaultFirebaseOptions.currentPlatform,
         ),
         builder: (context, snapshot) {
-          // Show a loading spinner while Firebase initializes
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          // Once complete, show the main application
           if (snapshot.connectionState == ConnectionState.done) {
             return const HomeScreen(); // Update to HomeScreen
           }
