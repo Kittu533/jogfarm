@@ -100,38 +100,6 @@ class MyProductScreen extends StatelessWidget {
         .collection('orders')
         .doc(orderId)
         .update({'status': status});
-    _showOrderStatusUpdateAnimation(context, status);
-  }
-
-  void _showOrderStatusUpdateAnimation(BuildContext context, String status) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Status Pesanan Diperbarui'),
-          content: SizedBox(
-            width: 200,
-            height: 200,
-            child: Lottie.asset(
-              status == 'accepted'
-                  ? 'assets/animations/success.json'
-                  : status == 'delivered'
-                      ? 'assets/animations/delivered.json'
-                      : 'assets/animations/cancelled.json',
-              repeat: false,
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text('OK'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
   }
 
   void _showOrderCancelledSnackbar(BuildContext context) {
@@ -161,7 +129,7 @@ class MyProductScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 5, // Sesuaikan jumlah tab
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: const Color(0xFF2D4739),
@@ -180,7 +148,8 @@ class MyProductScreen extends StatelessWidget {
             tabs: [
               Tab(text: 'Produk'),
               Tab(text: 'Pesanan'),
-              Tab(text: 'Diantar'),
+              Tab(text: 'Sedang diantar'), // Tambahkan tab
+              Tab(text: 'Selesai'),
               Tab(text: 'Dibatalkan'),
             ],
           ),
@@ -189,7 +158,8 @@ class MyProductScreen extends StatelessWidget {
           children: [
             _buildProductsTab(context),
             _buildOrdersTab(context, 'Aktif'), // Pesanan
-            _buildOrdersTab(context, 'Diantar'), // Diantar
+            _buildOrdersTab(context, 'Sedang diantar'), // Sedang diantar
+            _buildOrdersTab(context, 'Selesai'), // Selesai
             _buildOrdersTab(context, 'Dibatalkan'), // Dibatalkan
           ],
         ),
@@ -354,8 +324,10 @@ class MyProductScreen extends StatelessWidget {
             final order = orders[index];
             if (orderStatus == 'Aktif') {
               return _buildActiveOrderItem(context, order);
-            } else if (orderStatus == 'Diantar') {
-              return _buildDeliveredOrderItem(context, order);
+            } else if (orderStatus == 'Sedang diantar') {
+              return _buildInProgressOrderItem(context, order);
+            } else if (orderStatus == 'Selesai') {
+              return _buildCompletedOrderItem(context, order);
             } else if (orderStatus == 'Dibatalkan') {
               return _buildCancelledOrderItem(context, order);
             }
@@ -398,7 +370,7 @@ class MyProductScreen extends StatelessWidget {
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    _updateOrderStatus(context, order.orderId, 'Diantar');
+                    _updateOrderStatus(context, order.orderId, 'Sedang diantar');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
@@ -423,19 +395,6 @@ class MyProductScreen extends StatelessWidget {
                   ),
                   child: const Text('Tolak Pesanan'),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    _updateOrderStatus(context, order.orderId, 'accepted');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Text('Terima Pesanan'),
-                ),
               ],
             ),
           ],
@@ -444,7 +403,7 @@ class MyProductScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDeliveredOrderItem(BuildContext context, OrderModel order) {
+  Widget _buildInProgressOrderItem(BuildContext context, OrderModel order) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 10.0),
       child: Padding(
@@ -476,22 +435,64 @@ class MyProductScreen extends StatelessWidget {
               children: [
                 Icon(Icons.local_shipping, color: Colors.green),
                 Text(
-                  'Pesanan Diterima',
+                  'Pesanan Sedang Diantar',
                   style: TextStyle(color: Colors.green),
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    _updateOrderStatus(context, order.orderId, 'Dibatalkan');
-                    _showOrderCancelledSnackbar(context);
+                    _updateOrderStatus(context, order.orderId, 'Selesai');
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
+                    backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
-                  child: const Text('Batalkan'),
+                  child: const Text('Selesaikan Pesanan'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompletedOrderItem(BuildContext context, OrderModel order) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 10.0),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              leading: Image.network(
+                order.productImage,
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+              ),
+              title: Text(order.buyerId),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Order ID: ${order.orderId}'),
+                  Text('Alamat: ${order.address}'),
+                  Text('Total Pesanan: Rp${order.price}'),
+                  Text('Status: ${order.status}'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                Text(
+                  'Pesanan Selesai',
+                  style: TextStyle(color: Colors.green),
                 ),
               ],
             ),
@@ -535,19 +536,6 @@ class MyProductScreen extends StatelessWidget {
                 Text(
                   'Pesanan Dibatalkan',
                   style: TextStyle(color: Colors.red),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    _updateOrderStatus(context, order.orderId, 'accepted');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Text('Terima Pesanan'),
                 ),
               ],
             ),

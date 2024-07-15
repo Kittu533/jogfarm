@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-
 import 'package:intl/intl.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -20,6 +20,20 @@ class _ChatScreenState extends State<ChatScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _messageController = TextEditingController();
+  String receiverName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchReceiverName();
+  }
+
+  Future<void> _fetchReceiverName() async {
+    DocumentSnapshot userDoc = await _firestore.collection('users').doc(widget.receiverId).get();
+    setState(() {
+      receiverName = userDoc['username'];
+    });
+  }
 
   void _sendMessage(String text, String? fileUrl) {
     if (text.isEmpty && fileUrl == null) return;
@@ -51,10 +65,17 @@ class _ChatScreenState extends State<ChatScreen> {
       File file = File(pickedFile.path);
 
       // Simpan file ke Firebase Storage dan dapatkan URL-nya
-      // (Implementasi penyimpanan file ke Firebase Storage di sini)
+      try {
+        String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+        Reference ref = FirebaseStorage.instance.ref().child('chat_images').child(fileName);
+        UploadTask uploadTask = ref.putFile(file);
+        TaskSnapshot taskSnapshot = await uploadTask.whenComplete(() => null);
+        String fileUrl = await taskSnapshot.ref.getDownloadURL();
 
-      String fileUrl = 'URL_dari_Firebase_Storage';
-      _sendMessage('', fileUrl);
+        _sendMessage('', fileUrl);
+      } catch (e) {
+        print('Error uploading image: $e');
+      }
     }
   }
 
@@ -62,7 +83,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Chat'),
+        title: Text('Chat with $receiverName'),
       ),
       body: Column(
         children: [
@@ -86,11 +107,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
                     return ListTile(
                       title: Align(
-                        alignment:
-                            isMe ? Alignment.centerRight : Alignment.centerLeft,
+                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
                         child: Container(
-                          padding: EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 14),
+                          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 14),
                           decoration: BoxDecoration(
                             color: isMe ? Colors.blue : Colors.grey[300],
                             borderRadius: BorderRadius.circular(10),
@@ -99,9 +118,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               ? Image.network(message['fileUrl'])
                               : Text(
                                   message['text'],
-                                  style: TextStyle(
-                                      color:
-                                          isMe ? Colors.white : Colors.black),
+                                  style: TextStyle(color: isMe ? Colors.white : Colors.black),
                                 ),
                         ),
                       ),

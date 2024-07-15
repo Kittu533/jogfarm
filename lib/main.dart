@@ -25,7 +25,7 @@ class MyApp extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.connectionState == ConnectionState.done) {
-            return const HomeScreen(); // Update to HomeScreen
+            return const SplashScreen(); // Update to HomeScreen
           }
           // If initialization failed, show an error message
           if (snapshot.hasError) {

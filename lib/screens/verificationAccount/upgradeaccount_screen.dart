@@ -38,18 +38,13 @@ class UpgradeAkunScreen extends StatelessWidget {
               'Dapatkan Fitur dengan membuat akun Premium',
               style: TextStyle(fontSize: 16),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
             Container(
-              height: 100,
-              decoration: BoxDecoration(
-                color: Colors.green[200],
-                borderRadius: BorderRadius.circular(10),
-              ),
               child: Center(
                 child: Image.asset(
-                  'assets/images/upgrade.png', // Path yang benar untuk gambar
-                  height: 200, // Ukuran tinggi gambar
-                  width: 400,
+                  'assets/images/upgrade.png',
+                   // Path yang benar untuk gambar // Ukuran tinggi gambar
+                  width: 800,
                 ),
               ),
             ),
@@ -113,11 +108,11 @@ class UpgradeAkunScreen extends StatelessWidget {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2D4739),
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 120, vertical: 20),
                 ),
                 child: const Text(
                   'Upgrade Akun',
-                  style: TextStyle(fontSize: 16),
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
                 ),
               ),
             ),

@@ -38,13 +38,13 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          color: Color.fromARGB(255, 23, 92, 28),
+          color: const Color(0xFF2D4739),
         ),
         child: const Center(
           child: SizedBox(
             width: 150.0,
             height: 150.0,
-            child: Image(image: AssetImage('images/icon.png')),
+            child: Image(image: AssetImage('images/logo_jogfarm.png')),
           ),
         ),
       ),

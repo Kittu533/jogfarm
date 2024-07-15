@@ -1,11 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:jogfarmv1/screens/product/sellerproduct_screen.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:jogfarmv1/model/cart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:jogfarmv1/screens/chat/chat_screen.dart';
+import 'package:intl/intl.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -98,7 +100,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         quantity: 1,
         addedAt: DateTime.now(),
         productId: widget.productId,
-        sellerId: widget.sellerId, // Tambahkan sellerId
+        sellerId: widget.sellerId,
       );
 
       try {
@@ -180,6 +182,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   void startChat() async {
     User? currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
+      if (currentUser.uid == widget.sellerId) {
+        _showWarningDialog();
+        return;
+      }
       String chatId = _generateChatId(currentUser.uid, widget.sellerId);
       Navigator.push(
         context,
@@ -193,6 +199,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
     }
   }
 
+  void _showWarningDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Tidak bisa mengirim pesan'),
+          content: Text('Anda tidak dapat mengirim pesan kepada diri sendiri.'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _formatPrice(String price) {
+    final formatter =
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
+    return formatter.format(double.tryParse(price) ?? 0);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -203,10 +235,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
         ),
         backgroundColor: const Color(0xFF2D4739),
         iconTheme: IconThemeData(
-          color: Colors.white, // Mengubah warna ikon panah menjadi putih
+          color: Colors.white,
         ),
         actionsIconTheme: IconThemeData(
-          color: Colors.white, // Mengubah warna ikon tindakan menjadi putih
+          color: Colors.white,
         ),
       ),
       body: SingleChildScrollView(
@@ -257,7 +289,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Rp. ${widget.price}',
+                        _formatPrice(widget.price),
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -293,13 +325,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                       color: Colors.grey[700],
                     ),
                   ),
-                  Row(
-                    children: [
-                      Icon(Icons.remove_red_eye, size: 16, color: Colors.grey),
-                      SizedBox(width: 4),
-                      Text('Dilihat 13x', style: TextStyle(color: Colors.grey)),
-                    ],
-                  ),
                   SizedBox(height: 16),
                   Text(
                     'Detail produk',
@@ -309,7 +334,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   _buildDetailRow('Nama Produk', widget.name),
                   _buildDetailRow(
                       'Kategori', _getCategoryName(widget.categoryId)),
-                  _buildDetailRow('Berat produk', '${widget.weight} Kg'),
+                  _buildDetailRow('Berat produk', '${widget.weight}Kg'),
                   _buildDetailRow('Usia hewan', '${widget.age} Bulan'),
                   _buildDetailRow('Stok', '${widget.stock}'),
                   _buildDetailRow('Lokasi', widget.location),
@@ -371,8 +396,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
               child: Row(
                 children: [
                   CircleAvatar(
-                    backgroundImage: AssetImage(
-                        'images/user_profil.png'), // Ubah jalur sesuai dengan gambar profil Anda
+                    backgroundImage: AssetImage('images/user_profil.png'),
                     radius: 24.0,
                   ),
                   SizedBox(width: 8),
@@ -385,7 +409,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold),
                         ),
-                        Text(widget.sellerAddress),
+                        Text(widget.location),
                       ],
                     ),
                   ),
@@ -403,7 +427,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                   ),
                   GestureDetector(
                     onTap: () {
-                      // Handle 'Lihat semua' tap
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SellerProductsScreen(
+                            sellerId: widget.sellerId,
+                            sellerName: widget.sellerName,
+                          ),
+                        ),
+                      );
                     },
                     child: Text(
                       'Lihat semua',
@@ -428,8 +460,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 }
                 final otherProducts = snapshot.data!;
                 return Container(
-                  height:
-                      250, // Atur tinggi container agar dapat discroll horizontal
+                  height: 250,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount: otherProducts.length,
@@ -467,10 +498,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           );
                         },
                         child: _buildProductCard(
+                          product.id,
                           product['images'][0],
-                          product['name'],
                           product['price'].toString(),
+                          product['name'],
                           product['location'],
+                          product['user_id'],
                         ),
                       );
                     },
@@ -496,8 +529,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                 }
                 final recommendations = snapshot.data!;
                 return Container(
-                  height:
-                      250, // Atur tinggi container agar dapat discroll horizontal
+                  height: 250,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     itemCount: recommendations.length,
@@ -535,10 +567,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
                           );
                         },
                         child: _buildProductCard(
+                          product.id,
                           product['images'][0],
-                          product['name'],
                           product['price'].toString(),
+                          product['name'],
                           product['location'],
+                          product['user_id'],
                         ),
                       );
                     },
@@ -600,46 +634,77 @@ class _ProductDetailScreenState extends State<ProductDetailScreen>
   }
 
   Widget _buildProductCard(
-      String imageUrl, String name, String price, String location) {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Container(
-              width: 150, // Atur lebar card agar lebih kecil
-              decoration: BoxDecoration(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(10)),
-                image: DecorationImage(
-                  image: NetworkImage(imageUrl),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
+    String productId,
+    String imageUrl,
+    String price,
+    String name,
+    String location,
+    String userId,
+  ) {
+    String unit = 'Ekor'; // or 'Kg' based on your product
+
+    return FutureBuilder<String>(
+      future: _fetchSellerUsername(userId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Center(child: Text('Error loading username'));
+        }
+
+        final sellerUsername = snapshot.data ?? '';
+
+        return Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Rp. $price',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Container(
+                  width: 150, // Atur lebar card agar lebih kecil
+                  decoration: BoxDecoration(
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(10)),
+                    image: DecorationImage(
+                      image: NetworkImage(imageUrl),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
-                Text(name),
-                Text(location),
-              ],
-            ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${_formatPrice(price)}/$unit',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(name),
+                    Text(location),
+                    Text('Penjual: $sellerUsername'),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  Future<String> _fetchSellerUsername(String sellerId) async {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(sellerId)
+        .get();
+    return userDoc['username'] ?? '';
   }
 
   @override

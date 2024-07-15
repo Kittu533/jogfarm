@@ -28,7 +28,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         ),
       ),
       body: DefaultTabController(
-        length: 3,
+        length: 4, // Pastikan length sesuai dengan jumlah Tab
         child: Column(
           children: <Widget>[
             Container(
@@ -42,6 +42,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   indicatorColor: Colors.white, // Warna indikator tab
                   tabs: [
                     Tab(text: 'Aktif'),
+                    Tab(text: 'Sedang diantar'),
                     Tab(text: 'Selesai'),
                     Tab(text: 'Dibatalkan'),
                   ],
@@ -52,6 +53,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
               child: TabBarView(
                 children: [
                   OrderList(status: 'Aktif', userId: user!.uid),
+                  OrderList(status: 'Sedang diantar', userId: user!.uid),
                   OrderList(status: 'Selesai', userId: user!.uid),
                   OrderList(status: 'Dibatalkan', userId: user!.uid),
                 ],
@@ -86,6 +88,9 @@ class OrderList extends StatelessWidget {
             .map(
                 (doc) => OrderModel.fromMap(doc.data() as Map<String, dynamic>))
             .toList();
+        if (orders.isEmpty) {
+          return Center(child: Text('Tidak ada pesanan'));
+        }
         return ListView.builder(
           itemCount: orders.length,
           itemBuilder: (context, index) {
@@ -145,7 +150,11 @@ class OrderCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: order.status == 'Aktif'
                             ? Colors.green
-                            : Colors.grey,
+                            : order.status == 'Sedang diantar'
+                                ? Colors.orange
+                                : order.status == 'Selesai'
+                                    ? Colors.blue
+                                    : Colors.grey,
                         borderRadius: BorderRadius.circular(5),
                       ),
                       padding:

@@ -31,10 +31,26 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _ageController = TextEditingController();
   final _stockController = TextEditingController();
   final _locationController = TextEditingController();
-  final _userNameController = TextEditingController();
   final List<File> _images = [];
   bool _isLoading = false;
   String? _selectedUnit;
+  String sellerUsername = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSellerUsername();
+  }
+
+  Future<void> _fetchSellerUsername() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      setState(() {
+        sellerUsername = userDoc['username'];
+      });
+    }
+  }
 
   Future<void> _pickImage() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
@@ -55,8 +71,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
         User? user = FirebaseAuth.instance.currentUser;
         if (user == null) throw 'User not logged in';
 
-        String userName = _userNameController.text;
-
         List<String> imageUrls = [];
         for (File image in _images) {
           String fileName = Uuid().v4();
@@ -68,7 +82,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
         Product product = Product(
           userId: user.uid,
-          userName: userName,
+          userName: sellerUsername,
           productId: Uuid().v4(),
           name: _nameController.text,
           description: _descriptionController.text,
@@ -252,17 +266,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     },
                   ),
                   SizedBox(height: 20),
-                  TextFormField(
-                    controller: _userNameController,
-                    decoration: InputDecoration(labelText: 'Nama Penjual'),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Masukkan nama penjual';
-                      }
-                      return null;
-                    },
-                  ),
-                  SizedBox(height: 20),
                   DropdownButtonFormField<String>(
                     value: _selectedUnit,
                     items: ['ekor', 'kg'].map((String value) {
@@ -340,7 +343,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   SizedBox(height: 20),
                   TextFormField(
                     controller: _locationController,
-                    decoration: InputDecoration(labelText: 'Lokasi'),
+                    decoration: InputDecoration(
+                      labelText: 'Lokasi',
+                      hintText: 'kecamatan-kabupaten',
+                    ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Masukkan lokasi';

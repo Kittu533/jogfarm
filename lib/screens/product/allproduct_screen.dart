@@ -21,7 +21,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
   };
 
   Query _buildQuery() {
-    Query query = FirebaseFirestore.instance.collection('products');
+    Query query = FirebaseFirestore.instance.collection('products').where('is_active', isEqualTo: true);
 
     if (selectedCategory != null) {
       query = query.where('category_id', isEqualTo: _categoryIds[selectedCategory]);

@@ -31,7 +31,8 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _getCurrentLocation() async {
-    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high);
     setState(() {
       _initialPosition = LatLng(position.latitude, position.longitude);
     });
@@ -59,13 +60,23 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Pilih Lokasi'),
+        title: Text(
+          'Pilih Lokasi',
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: const Color(0xFF2D4739),
+        iconTheme: IconThemeData(
+          color: Colors.white,
+        ),
+        actionsIconTheme: IconThemeData(
+          color: Colors.white,
+        ),
       ),
       body: Stack(
         children: [
           GoogleMap(
-            initialCameraPosition: CameraPosition(target: _initialPosition, zoom: 15),
+            initialCameraPosition:
+                CameraPosition(target: _initialPosition, zoom: 15),
             onMapCreated: _onMapCreated,
             onCameraMove: _onCameraMove,
             myLocationEnabled: true,
@@ -80,8 +91,12 @@ class _MapScreenState extends State<MapScreen> {
             right: 20,
             child: ElevatedButton(
               onPressed: _onConfirmLocation,
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2D4739)),
-              child: Text('Konfirmasi Lokasi'),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2D4739)),
+              child: Text(
+                'Konfirmasi Lokasi',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
             ),
           )
         ],

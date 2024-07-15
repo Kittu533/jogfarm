@@ -59,34 +59,37 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      QuerySnapshot querySnapshot = await _firestore
-          .collection('users')
-          .where('username', isEqualTo: _usernameController.text)
-          .get();
+      String email = '';
+      String input = _usernameController.text;
 
-      if (querySnapshot.docs.isEmpty) {
-        _showFailureNotification('Username tidak ditemukan');
-        return;
+      if (RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9]+\.[a-zA-Z]+").hasMatch(input)) {
+        // Input is an email
+        email = input;
+      } else {
+        // Input is a username
+        QuerySnapshot querySnapshot = await _firestore
+            .collection('users')
+            .where('username', isEqualTo: input)
+            .get();
+
+        if (querySnapshot.docs.isEmpty) {
+          _showFailureNotification('Username tidak ditemukan');
+          return;
+        }
+
+        var userData = querySnapshot.docs[0];
+        email = userData['email'];
       }
-
-      var userData = querySnapshot.docs[0];
 
       // Authenticate the user with Firebase Authentication
       UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(
-              email: userData['email'], password: _passwordController.text);
+          .signInWithEmailAndPassword(email: email, password: _passwordController.text);
 
       if (userCredential.user != null) {
         // Save login status and user ID
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setBool('isLoggedIn', true);
         await prefs.setString('userId', userCredential.user!.uid);
-
-        // Update the password in Firestore if it has changed
-        if (userData['password'] != _passwordController.text) {
-          await DatabaseService().updatePassword(
-              userCredential.user!.uid, _passwordController.text);
-        }
 
         _showSuccessNotification('Login berhasil');
         Navigator.pushReplacement(
@@ -191,9 +194,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextField(
                         controller: _usernameController,
                         decoration: InputDecoration(
-                          labelText: 'Username',
+                          labelText: 'Username atau Email',
                           prefixIcon: Icon(Icons.person),
-                          hintText: 'Masukkan username Anda',
+                          hintText: 'Masukkan username atau email Anda',
                           focusedBorder: UnderlineInputBorder(
                             borderSide: BorderSide(color: backgroundColor),
                           ),

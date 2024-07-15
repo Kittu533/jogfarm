@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:intl/intl.dart';
 import 'package:jogfarmv1/screens/account/myaccount_screen.dart';
 import 'package:jogfarmv1/screens/cart/cartpage_screen.dart';
 import 'package:jogfarmv1/screens/chat/chatall_screen.dart';
@@ -13,6 +14,7 @@ import 'package:jogfarmv1/screens/product/myproduct_screen.dart';
 import 'package:jogfarmv1/screens/product/detailproduct_screen.dart';
 import 'package:jogfarmv1/screens/product/uploadproduct_screen.dart';
 import 'package:jogfarmv1/screens/auth/login_screen.dart';
+import 'package:jogfarmv1/screens/search_results_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -28,11 +30,21 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isSeller = false;
   bool _showLoginPopup = false;
   List<Widget> _widgetOptions = [];
+  String _searchQuery = "";
+  TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _checkLoginStatus();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkLoginStatus() async {
@@ -65,6 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
   }
+  
 
   void _onItemTapped(int index) {
     setState(() {
@@ -100,8 +113,48 @@ class _HomeScreenState extends State<HomeScreen> {
     return shouldPop ?? false;
   }
 
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text;
+    });
+  }
+
+  String _formatPrice(String price) {
+    final formatter =
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp.', decimalDigits: 0);
+    return formatter.format(double.tryParse(price) ?? 0);
+  }
+
+  Future<String> _fetchSellerUsername(String sellerId) async {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(sellerId)
+        .get();
+    return userDoc['username'] ?? '';
+  }
+
+  Future<List<QueryDocumentSnapshot>> _fetchProducts() async {
+    Query query = FirebaseFirestore.instance.collection('products');
+    if (_searchQuery.isNotEmpty) {
+      query = query
+          .where('name', isGreaterThanOrEqualTo: _searchQuery)
+          .where('name', isLessThanOrEqualTo: _searchQuery + '\uf8ff');
+    }
+    query = query
+        .where('is_active', isEqualTo: true)
+        .orderBy('created_at', descending: true)
+        .limit(6);
+    QuerySnapshot querySnapshot = await query.get();
+    return querySnapshot.docs;
+  }
+
   @override
   Widget build(BuildContext context) {
+    List<String> imgList = [
+      'images/news_image.jpg',
+      'images/news_image.jpg',
+      'images/news_image.jpg',
+    ];
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
@@ -160,7 +213,7 @@ class BottomNavBarFb1 extends StatelessWidget {
   final int selectedIndex;
   final Function(int) onItemTapped;
 
-  final primaryColor = const Color(0xFF2D4739); // Sesuaikan dengan warna AppBar
+  final primaryColor = const Color(0xFF2D4739);
 
   @override
   Widget build(BuildContext context) {
@@ -170,8 +223,7 @@ class BottomNavBarFb1 extends StatelessWidget {
         height: 56,
         width: MediaQuery.of(context).size.width,
         child: Padding(
-          padding:
-              const EdgeInsets.only(left: 10.0, right: 10.0), // Kurangi padding
+          padding: const EdgeInsets.only(left: 10.0, right: 10.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -200,7 +252,7 @@ class BottomNavBarFb1 extends StatelessWidget {
                 primaryColor: primaryColor,
               ),
               IconBottomBar(
-                icon: Icons.settings,
+                icon: Icons.person,
                 selected: selectedIndex == 4,
                 onPressed: () => onItemTapped(4),
                 primaryColor: primaryColor,
@@ -319,6 +371,9 @@ class _HomePageState extends State<HomePage> {
     'Lainnya': 29,
   };
 
+  TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
+
   Future<String> _fetchSellerAddress(String sellerId) async {
     DocumentSnapshot userDoc = await FirebaseFirestore.instance
         .collection('users')
@@ -329,6 +384,32 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _refreshPage() async {
     setState(() {});
+  }
+
+  String _formatPrice(String price) {
+    final formatter =
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
+    return formatter.format(double.tryParse(price) ?? 0);
+  }
+
+  Future<String> _fetchSellerUsername(String sellerId) async {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(sellerId)
+        .get();
+    return userDoc['username'] ?? '';
+  }
+
+  Future<List<QueryDocumentSnapshot>> _fetchProducts() async {
+    Query query = FirebaseFirestore.instance.collection('products');
+    if (_searchQuery.isNotEmpty) {
+      query = query
+          .where('name', isGreaterThanOrEqualTo: _searchQuery)
+          .where('name', isLessThanOrEqualTo: _searchQuery + '\uf8ff');
+    }
+    query = query.orderBy('created_at', descending: true).limit(6);
+    QuerySnapshot querySnapshot = await query.get();
+    return querySnapshot.docs;
   }
 
   @override
@@ -387,6 +468,16 @@ class _HomePageState extends State<HomePage> {
                       child: SizedBox(
                         height: 50.0,
                         child: TextField(
+                          controller: _searchController,
+                          onSubmitted: (query) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    SearchResultsScreen(searchQuery: query),
+                              ),
+                            );
+                          },
                           decoration: InputDecoration(
                             hintText: 'Pencarian',
                             prefixIcon: const Icon(Icons.search),
@@ -415,7 +506,8 @@ class _HomePageState extends State<HomePage> {
                       },
                     ),
                     IconButton(
-                      icon: const Icon(Icons.notifications, color: Colors.white),
+                      icon:
+                          const Icon(Icons.notifications, color: Colors.white),
                       onPressed: () {},
                     ),
                   ],
@@ -480,9 +572,7 @@ class _HomePageState extends State<HomePage> {
                         MaterialPageRoute(
                           builder: (context) => CategoryProductsScreen(
                             category: category,
-                            categoryId: category == 'Ikan'
-                                ? _categoryIds[category]!
-                                : _typeIds[category]!,
+                            categoryId: _categoryIds[category]!,
                           ),
                         ),
                       );
@@ -500,7 +590,7 @@ class _HomePageState extends State<HomePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Tersedia Space Iklan yow    !!',
+                      'Tersedia Space Iklan !!',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -559,21 +649,23 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               const SizedBox(height: 8),
-              FutureBuilder<QuerySnapshot>(
-                future: FirebaseFirestore.instance
-                    .collection('products')
-                    .orderBy('created_at', descending: true)
-                    .limit(6)
-                    .get(),
+              FutureBuilder<List<QueryDocumentSnapshot>>(
+                future: _fetchProducts(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (snapshot.hasError) {
-                    return const Center(child: Text('Error loading products'));
+                    return Center(
+                        child:
+                            Text('Error loading products: ${snapshot.error}'));
                   }
 
-                  final products = snapshot.data!.docs;
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text('No products found'));
+                  }
+
+                  final products = snapshot.data!;
 
                   return GridView.builder(
                     shrinkWrap: true,
@@ -589,23 +681,24 @@ class _HomePageState extends State<HomePage> {
                     itemBuilder: (context, index) {
                       final product = products[index];
                       return FutureBuilder<String>(
-                        future: _fetchSellerAddress(product['user_id']),
-                        builder: (context, addressSnapshot) {
-                          if (addressSnapshot.connectionState ==
+                        future: _fetchSellerUsername(product['user_id']),
+                        builder: (context, usernameSnapshot) {
+                          if (usernameSnapshot.connectionState ==
                               ConnectionState.waiting) {
                             return const Center(
                                 child: CircularProgressIndicator());
                           }
-                          if (addressSnapshot.hasError) {
-                            return const Center(
-                                child: Text('Error loading address'));
+                          if (usernameSnapshot.hasError) {
+                            return Center(
+                                child: Text(
+                                    'Error loading username: ${usernameSnapshot.error}'));
                           }
 
-                          final sellerAddress = addressSnapshot.data ?? '';
+                          final sellerUsername = usernameSnapshot.data ?? '';
 
                           return _buildProductCard(
                             context,
-                            product.id, // Pass the actual product ID
+                            product.id,
                             product['images'][0],
                             product['price'].toString(),
                             product['name'],
@@ -622,16 +715,15 @@ class _HomePageState extends State<HomePage> {
                             product['weight'],
                             product['age'],
                             product['stock'],
-                            product['user_name'], // Pass the userName
-                            sellerAddress, // Pass the sellerAddress
-                            product['user_id'], // Pass the userId for fetching other products
+                            sellerUsername,
+                            product['user_id'],
                           );
                         },
                       );
                     },
                   );
                 },
-              ),
+              )
             ],
           ),
         ),
@@ -664,7 +756,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildProductCard(
     BuildContext context,
-    String productId, // Add this parameter
+    String productId,
     String imageUrl,
     String price,
     String name,
@@ -678,14 +770,13 @@ class _HomePageState extends State<HomePage> {
     DateTime createdAt,
     int unitId,
     List<String> images,
-    double weight, // Add this parameter
+    double weight,
     int age,
     int stock,
-    String userName, // Change this parameter
-    String sellerAddress, // Add this parameter
-    String userId, // Add this parameter for fetching other products
+    String sellerUsername,
+    String userId,
   ) {
-    String unit = unitId == 1 ? "Kg" : "Ekor"; // Convert unitId to string
+    String unit = unitId == 1 ? "Kg" : "Ekor";
 
     return GestureDetector(
       onTap: () {
@@ -693,7 +784,7 @@ class _HomePageState extends State<HomePage> {
           context,
           MaterialPageRoute(
             builder: (context) => ProductDetailScreen(
-              productId: productId, // Pass the actual product ID
+              productId: productId,
               imageUrl: imageUrl,
               price: price,
               name: name,
@@ -707,12 +798,12 @@ class _HomePageState extends State<HomePage> {
               createdAt: createdAt,
               unitId: unitId,
               images: images,
-              weight: weight, // Pass the parameter
-              age: age, // Pass the parameter
-              stock: stock, // Pass the parameter
-              sellerName: userName, // Pass the userName as sellerName
-              sellerAddress: sellerAddress, // Pass the sellerAddress
-              sellerId: userId, // Pass the userId for fetching other products
+              weight: weight,
+              age: age,
+              stock: stock,
+              sellerName: sellerUsername,
+              sellerAddress: '',
+              sellerId: userId,
             ),
           ),
         );
@@ -742,13 +833,14 @@ class _HomePageState extends State<HomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Rp. $price/$unit',
+                    '${_formatPrice(price)}/$unit',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(name),
-                  Text(location)
+                  Text(location),
+                  Text('Penjual: $sellerUsername'),
                 ],
               ),
             ),
